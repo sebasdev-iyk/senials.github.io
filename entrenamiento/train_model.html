@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Entrenamiento ASL - TensorFlow.js (Simple)</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tensorflow/4.10.0/tf.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: white;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .file-upload {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .file-label {
+            background: linear-gradient(45deg, #00b894, #00cec9);
+            color: white;
+            padding: 15px 30px;
+            border-radius: 25px;
+            cursor: pointer;
+            display: inline-block;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 184, 148, 0.3);
+            margin: 10px;
+        }
+
+        .file-label:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 184, 148, 0.4);
+        }
+
+        button {
+            background: linear-gradient(45deg, #ff6b6b, #ff8e8e);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+            margin: 10px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4);
+        }
+
+        button:disabled {
+            background: #666;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .control-panel {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .control-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .progress-container {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 25px;
+            margin: 20px 0;
+            text-align: center;
+            display: none;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 15px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4ecdc4, #44a08d);
+            width: 0%;
+            transition: width 0.3s ease;
+            border-radius: 10px;
+        }
+
+        .status-panel {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            min-height: 150px;
+            overflow-y: auto;
+            max-height: 400px;
+        }
+
+        .log-entry {
+            padding: 8px 12px;
+            margin: 5px 0;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-left: 4px solid #4ecdc4;
+            font-family: monospace;
+            font-size: 14px;
+        }
+
+        .log-entry.success {
+            border-left-color: #2ecc71;
+        }
+
+        .log-entry.error {
+            border-left-color: #e74c3c;
+        }
+
+        .model-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+            display: none;
+        }
+
+        .info-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .info-card h4 {
+            margin: 0 0 10px 0;
+            color: #4ecdc4;
+        }
+
+        .info-card p {
+            margin: 0;
+            font-size: 18px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🤖 Entrenamiento ASL - TensorFlow.js</h1>
+        
+        <div class="file-upload">
+            <h3>📁 Cargar Archivos de Datos</h3>
+            <p>Selecciona los archivos JSON generados por el cuaderno Jupyter:</p>
+            
+            <label for="modelInfoFile" class="file-label">
+                📊 Seleccionar model_info.json
+            </label>
+            <input type="file" id="modelInfoFile" class="file-input" accept=".json">
+            
+            <label for="trainDataFile" class="file-label">
+                🔢 Seleccionar train_data.json
+            </label>
+            <input type="file" id="trainDataFile" class="file-input" accept=".json">
+            
+            <div style="margin-top: 15px;">
+                <span id="modelInfoStatus">❌ model_info.json no cargado</span><br>
+                <span id="trainDataStatus">❌ train_data.json no cargado</span>
+            </div>
+        </div>
+        
+        <div class="control-panel">
+            <div class="control-card">
+                <h3>🏗️ Crear Modelo</h3>
+                <button id="createModelBtn" disabled>Crear Modelo</button>
+                <p id="modelStatus">Esperando datos</p>
+            </div>
+            
+            <div class="control-card">
+                <h3>🚀 Entrenar</h3>
+                <button id="trainBtn" disabled>Iniciar Entrenamiento</button>
+                <p id="trainStatus">Listo para entrenar</p>
+            </div>
+            
+            <div class="control-card">
+                <h3>💾 Guardar</h3>
+                <button id="saveBtn" disabled>Guardar Modelo</button>
+                <p id="saveStatus">Modelo no guardado</p>
+            </div>
+        </div>
+
+        <div class="model-info" id="modelInfo">
+            <div class="info-card">
+                <h4>Clases</h4>
+                <p id="numClasses">--</p>
+            </div>
+            <div class="info-card">
+                <h4>Muestras de Entrenamiento</h4>
+                <p id="trainSamples">--</p>
+            </div>
+            <div class="info-card">
+                <h4>Muestras de Prueba</h4>
+                <p id="testSamples">--</p>
+            </div>
+            <div class="info-card">
+                <h4>Características de Entrada</h4>
+                <p id="inputFeatures">--</p>
+            </div>
+        </div>
+
+        <div class="progress-container" id="progressContainer">
+            <h3>📈 Progreso de Entrenamiento</h3>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div style="display: flex; justify-content: space-between; flex-wrap: wrap; margin: 10px 0;">
+                <span id="epochInfo">Época: 0/100</span>
+                <span id="lossInfo">Loss: --</span>
+                <span id="accInfo">Accuracy: --</span>
+                <span id="valLossInfo">Val Loss: --</span>
+                <span id="valAccInfo">Val Accuracy: --</span>
+            </div>
+        </div>
+
+        <div class="status-panel">
+            <h3>📋 Estado del Entrenamiento</h3>
+            <div id="logContainer"></div>
+        </div>
+    </div>
+
+    <script>
+        let modelInfo = null;
+        let trainData = null;
+        let model = null;
+        let isTraining = false;
+
+        // Referencias a elementos
+        const modelInfoFile = document.getElementById('modelInfoFile');
+        const trainDataFile = document.getElementById('trainDataFile');
+        const createModelBtn = document.getElementById('createModelBtn');
+        const trainBtn = document.getElementById('trainBtn');
+        const saveBtn = document.getElementById('saveBtn');
+        const logContainer = document.getElementById('logContainer');
+
+        // Función para agregar logs
+        function addLog(message, type = 'info') {
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry ${type}`;
+            logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        // Función para leer archivos JSON
+        function readJSONFile(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const json = JSON.parse(e.target.result);
+                        resolve(json);
+                    } catch (error) {
+                        reject(new Error(`Error parsing JSON: ${error.message}`));
+                    }
+                };
+                reader.onerror = () => reject(new Error('Error reading file'));
+                reader.readAsText(file);
+            });
+        }
+
+        // Manejar carga de model_info.json
+        modelInfoFile.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                try {
+                    addLog('Cargando model_info.json...');
+                    modelInfo = await readJSONFile(file);
+                    document.getElementById('modelInfoStatus').textContent = '✅ model_info.json cargado';
+                    addLog('✅ model_info.json cargado exitosamente', 'success');
+                    checkDataReady();
+                } catch (error) {
+                    addLog(`❌ Error cargando model_info.json: ${error.message}`, 'error');
+                    document.getElementById('modelInfoStatus').textContent = '❌ Error en model_info.json';
+                    modelInfo = null;
+                }
+            }
+        });
+
+        // Manejar carga de train_data.json
+        trainDataFile.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                try {
+                    addLog('Cargando train_data.json...');
+                    trainData = await readJSONFile(file);
+                    document.getElementById('trainDataStatus').textContent = '✅ train_data.json cargado';
+                    addLog('✅ train_data.json cargado exitosamente', 'success');
+                    checkDataReady();
+                } catch (error) {
+                    addLog(`❌ Error cargando train_data.json: ${error.message}`, 'error');
+                    document.getElementById('trainDataStatus').textContent = '❌ Error en train_data.json';
+                    trainData = null;
+                }
+            }
+        });
+
+        // Verificar si los datos están listos
+        function checkDataReady() {
+            if (modelInfo && trainData) {
+                createModelBtn.disabled = false;
+                document.getElementById('modelStatus').textContent = 'Listo para crear';
+                
+                // Mostrar información del modelo
+                const modelInfoDiv = document.getElementById('modelInfo');
+                modelInfoDiv.style.display = 'grid';
+                document.getElementById('numClasses').textContent = modelInfo.num_classes;
+                document.getElementById('trainSamples').textContent = modelInfo.train_samples;
+                document.getElementById('testSamples').textContent = modelInfo.test_samples;
+                document.getElementById('inputFeatures').textContent = modelInfo.input_shape;
+                
+                addLog(`📊 Datos listos: ${modelInfo.num_classes} clases, ${modelInfo.train_samples} muestras de entrenamiento`, 'success');
+            }
+        }
+
+        // Crear modelo
+        function createModel() {
+            const inputShape = modelInfo.input_shape;
+            const numClasses = modelInfo.num_classes;
+
+            const model = tf.sequential({
+                layers: [
+                    tf.layers.dense({
+                        inputShape: [inputShape],
+                        units: 256,
+                        activation: 'relu',
+                        kernelRegularizer: tf.regularizers.l2({ l2: 0.001 })
+                    }),
+                    tf.layers.batchNormalization(),
+                    tf.layers.dropout({ rate: 0.4 }),
+
+                    tf.layers.dense({
+                        units: 128,
+                        activation: 'relu',
+                        kernelRegularizer: tf.regularizers.l2({ l2: 0.001 })
+                    }),
+                    tf.layers.batchNormalization(),
+                    tf.layers.dropout({ rate: 0.3 }),
+
+                    tf.layers.dense({
+                        units: 64,
+                        activation: 'relu'
+                    }),
+                    tf.layers.dropout({ rate: 0.2 }),
+
+                    tf.layers.dense({
+                        units: numClasses,
+                        activation: 'softmax'
+                    })
+                ]
+            });
+
+            return model;
+        }
+
+        // Preparar datos de entrenamiento
+        function prepareTrainingData() {
+            const xTrain = tf.tensor2d(trainData.X_train);
+            const yTrain = tf.oneHot(tf.tensor1d(trainData.y_train, 'int32'), modelInfo.num_classes);
+            
+            const xTest = tf.tensor2d(trainData.X_test);
+            const yTest = tf.oneHot(tf.tensor1d(trainData.y_test, 'int32'), modelInfo.num_classes);
+
+            return { xTrain, yTrain, xTest, yTest };
+        }
+
+        // Actualizar progreso
+        function updateProgress(epoch, maxEpochs, logs) {
+            const progressFill = document.getElementById('progressFill');
+            const epochInfo = document.getElementById('epochInfo');
+            const lossInfo = document.getElementById('lossInfo');
+            const accInfo = document.getElementById('accInfo');
+            const valLossInfo = document.getElementById('valLossInfo');
+            const valAccInfo = document.getElementById('valAccInfo');
+
+            const progress = (epoch / maxEpochs) * 100;
+            
+            progressFill.style.width = `${progress}%`;
+            epochInfo.textContent = `Época: ${epoch}/${maxEpochs}`;
+            lossInfo.textContent = `Loss: ${logs.loss.toFixed(4)}`;
+            accInfo.textContent = `Accuracy: ${logs.acc.toFixed(4)}`;
+            valLossInfo.textContent = `Val Loss: ${logs.val_loss.toFixed(4)}`;
+            valAccInfo.textContent = `Val Accuracy: ${logs.val_acc.toFixed(4)}`;
+        }
+
+        // Crear modelo
+        createModelBtn.addEventListener('click', () => {
+            addLog('Creando modelo...');
+            createModelBtn.disabled = true;
+            
+            try {
+                model = createModel();
+                
+                addLog('✅ Modelo creado exitosamente', 'success');
+                addLog(`Arquitectura: ${modelInfo.input_shape} → 256 → 128 → 64 → ${modelInfo.num_classes}`);
+                document.getElementById('modelStatus').textContent = 'Modelo creado';
+                trainBtn.disabled = false;
+                
+                model.summary();
+            } catch (error) {
+                addLog(`❌ Error creando modelo: ${error.message}`, 'error');
+                document.getElementById('modelStatus').textContent = 'Error en creación';
+                createModelBtn.disabled = false;
+            }
+        });
+
+        // Entrenar modelo
+        trainBtn.addEventListener('click', async () => {
+            if (isTraining) return;
+            
+            addLog('🚀 Iniciando entrenamiento...');
+            trainBtn.disabled = true;
+            isTraining = true;
+            
+            document.getElementById('progressContainer').style.display = 'block';
+            
+            try {
+                const data = prepareTrainingData();
+                
+                model.compile({
+                    optimizer: tf.train.adam(0.001),
+                    loss: 'categoricalCrossentropy',
+                    metrics: ['accuracy']
+                });
+
+                const history = await model.fit(data.xTrain, data.yTrain, {
+                    epochs: 100,
+                    batchSize: 32,
+                    validationData: [data.xTest, data.yTest],
+                    callbacks: {
+                        onEpochEnd: (epoch, logs) => {
+                            updateProgress(epoch + 1, 100, logs);
+                            addLog(`Época ${epoch + 1}: Loss=${logs.loss.toFixed(4)}, Acc=${logs.acc.toFixed(4)}, Val_Acc=${logs.val_acc.toFixed(4)}`);
+                        }
+                    },
+                    shuffle: true
+                });
+                
+                addLog('✅ Entrenamiento completado', 'success');
+                document.getElementById('trainStatus').textContent = 'Entrenamiento completado';
+                saveBtn.disabled = false;
+                isTraining = false;
+                
+                // Limpiar tensores
+                data.xTrain.dispose();
+                data.yTrain.dispose();
+                data.xTest.dispose();
+                data.yTest.dispose();
+                
+            } catch (error) {
+                addLog(`❌ Error durante entrenamiento: ${error.message}`, 'error');
+                document.getElementById('trainStatus').textContent = 'Error en entrenamiento';
+                trainBtn.disabled = false;
+                isTraining = false;
+            }
+        });
+
+        // Guardar modelo
+        saveBtn.addEventListener('click', async () => {
+            addLog('💾 Guardando modelo...');
+            saveBtn.disabled = true;
+            
+            try {
+                await model.save('downloads://asl-model-tfjs');
+                addLog('✅ Modelo guardado exitosamente', 'success');
+                document.getElementById('saveStatus').textContent = 'Modelo guardado';
+            } catch (error) {
+                addLog(`❌ Error guardando modelo: ${error.message}`, 'error');
+                document.getElementById('saveStatus').textContent = 'Error al guardar';
+                saveBtn.disabled = false;
+            }
+        });
+
+        // Inicialización
+        addLog('🔄 Sistema listo. Selecciona los archivos JSON para comenzar.');
+    </script>
+</body>
+</html>
