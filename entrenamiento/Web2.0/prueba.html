@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Entrenamiento ASL - TensorFlow.js</title>
+    <!-- TensorFlow.js library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tensorflow/4.10.0/tf.min.js"></script>
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Custom CSS for styling -->
+    <link rel="stylesheet" href="prueba.css">
+</head>
+<body>
+    <div class="app-container">
+        <header class="app-header">
+            <h1><i class="fa-solid fa-robot"></i> ASL Trainer</h1>
+        </header>
+
+        <main class="main-content-area">
+            <section class="card file-upload-section">
+                <h2><i class="fa-solid fa-folder-open"></i> Cargar Archivos de Datos</h2>
+                <p>Selecciona los archivos JSON generados por el cuaderno Jupyter:</p>
+                
+                <div class="file-input-group">
+                    <label for="modelInfoFile" class="m3-button m3-button--filled">
+                        <i class="fa-solid fa-chart-line"></i> model_info.json
+                    </label>
+                    <input type="file" id="modelInfoFile" class="file-input" accept=".json">
+                    <!-- Status for modelInfoFile - updated dynamically by JS -->
+                    <span id="modelInfoStatus" class="file-status file-status--pending"><i class="fa-solid fa-hourglass-half"></i> Pendiente</span>
+                </div>
+                
+                <div class="file-input-group">
+                    <label for="trainDataFile" class="m3-button m3-button--filled">
+                        <i class="fa-solid fa-calculator"></i> train_data.json
+                    </label>
+                    <input type="file" id="trainDataFile" class="file-input" accept=".json">
+                    <!-- Status for trainDataFile - updated dynamically by JS -->
+                    <span id="trainDataStatus" class="file-status file-status--pending"><i class="fa-solid fa-hourglass-half"></i> Pendiente</span>
+                </div>
+            </section>
+
+            <section class="card control-section">
+                <h2><i class="fa-solid fa-cogs"></i> Controles del Modelo</h2>
+                <div class="control-grid">
+                    <div class="control-card">
+                        <h3>Crear Modelo</h3>
+                        <button id="createModelBtn" class="m3-button m3-button--elevated" disabled><i class="fa-solid fa-cubes"></i> Crear</button>
+                        <!-- Status for model creation - updated dynamically by JS -->
+                        <p id="modelStatus" class="control-status"><i class="fa-solid fa-hourglass-start"></i> Esperando datos</p>
+                    </div>
+                    
+                    <div class="control-card">
+                        <h3>Entrenar Modelo</h3>
+                        <button id="trainBtn" class="m3-button m3-button--elevated" disabled><i class="fa-solid fa-play"></i> Iniciar Entrenamiento</button>
+                        <!-- Status for model training - updated dynamically by JS -->
+                        <p id="trainStatus" class="control-status"><i class="fa-solid fa-circle-play"></i> Listo para entrenar</p>
+                    </div>
+                    
+                    <div class="control-card">
+                        <h3>Guardar Modelo</h3>
+                        <button id="saveBtn" class="m3-button m3-button--elevated" disabled><i class="fa-solid fa-save"></i> Guardar</button>
+                        <!-- Status for model saving - updated dynamically by JS -->
+                        <p id="saveStatus" class="control-status"><i class="fa-solid fa-cloud-arrow-up"></i> Modelo no guardado</p>
+                    </div>
+                </div>
+            </section>
+
+            <section class="card model-info-section" id="modelInfo">
+                <h2><i class="fa-solid fa-info-circle"></i> Información del Modelo</h2>
+                <div class="info-grid">
+                    <div class="info-card">
+                        <h3>Clases</h3>
+                        <p id="numClasses">--</p>
+                    </div>
+                    <div class="info-card">
+                        <h3>Muestras de Entrenamiento</h3>
+                        <p id="trainSamples">--</p>
+                    </div>
+                    <div class="info-card">
+                        <h3>Muestras de Prueba</h3>
+                        <p id="testSamples">--</p>
+                    </div>
+                    <div class="info-card">
+                        <h3>Características de Entrada</h3>
+                        <p id="inputFeatures">--</p>
+                    </div>
+                </div>
+            </section>
+
+            <section class="card progress-section" id="progressContainer">
+                <h2><i class="fa-solid fa-chart-line"></i> Progreso de Entrenamiento</h2>
+                <div class="progress-bar-container">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <div class="progress-metrics">
+                    <span id="epochInfo">Época: 0/5</span>
+                    <span id="lossInfo">Loss: --</span>
+                    <span id="accInfo">Accuracy: --</span>
+                    <span id="valLossInfo">Val Loss: --</span>
+                    <span id="valAccInfo">Val Accuracy: --</span>
+                </div>
+            </section>
+
+            <section class="card status-log-section">
+                <h2><i class="fa-solid fa-clipboard-list"></i> Estado y Logs</h2>
+                <div id="logContainer" class="log-container"></div>
+            </section>
+        </main>
+    </div>
+    <!-- Script file must be loaded after DOM elements -->
+    <script src="prueba.js"></script>
+</body>
+</html>
