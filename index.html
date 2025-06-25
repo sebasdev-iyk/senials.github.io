@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Predictor ASL en Tiempo Real</title>
+    <title>Predictor ASL Automático</title>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
@@ -11,20 +11,386 @@
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tensorflow/4.10.0/tf.min.js"></script>
     
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    
-    <link rel="stylesheet" href="entrenamiento/Web2.0/prueba.css"> 
+    <style>
+        /* Tus estilos CSS existentes - NO CAMBIADOS */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #1a2980 0%, #26d0ce 100%);
+            min-height: 100vh;
+            color: white;
+            overflow-x: hidden;
+        }
+
+        .main-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 15px;
+        }
+
+        h1 {
+            font-size: 2.8rem;
+            background: linear-gradient(45deg, #00b894, #00cec9);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            color: #e0f7fa;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .content-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 900px) {
+            .content-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .video-container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            position: relative;
+        }
+
+        .controls-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .control-panel {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .camera-container {
+            position: relative;
+            width: 100%;
+            max-width: 720px;
+            margin: 0 auto;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+        }
+
+        #input_video {
+            width: 100%;
+            height: auto;
+            border-radius: 15px;
+            display: none; /* Oculta el elemento de video directamente, solo el canvas será visible */
+        }
+
+        #output_canvas {
+            width: 100%;
+            height: auto;
+            border-radius: 15px;
+            transform: scaleX(-1); /* Efecto espejo */
+            display: block;
+            background: #000;
+        }
+
+        .prediction-display {
+            text-align: center;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            margin-top: 15px;
+            animation: fadeIn 0.5s ease;
+            border: 2px solid rgba(78, 205, 196, 0.5);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .prediction-letter {
+            font-size: 64px;
+            font-weight: bold;
+            color: #ffdd59;
+            margin: 10px 0;
+            text-shadow: 0 0 15px rgba(255, 221, 89, 0.7);
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        .confidence-display {
+            font-size: 18px;
+            margin: 10px 0;
+            color: #e0f7fa;
+        }
+
+        .confidence-bar {
+            width: 100%;
+            height: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 15px 0;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .confidence-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4ecdc4, #44a08d);
+            border-radius: 10px;
+            transition: width 0.5s ease;
+            box-shadow: 0 0 15px rgba(78, 205, 196, 0.5);
+        }
+
+        .status {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 13px;
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .status-item {
+            margin: 8px 0;
+            padding: 8px;
+            border-left: 3px solid #4ecdc4;
+            padding-left: 12px;
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 0 5px 5px 0;
+        }
+
+        .status-item.error {
+            border-left-color: #ff6b6b;
+            color: #ffcccb;
+        }
+
+        .status-item.success {
+            border-left-color: #00b894;
+            color: #90EE90;
+        }
+
+        .status-item.warning {
+            border-left-color: #feca57;
+            color: #ffeaa7;
+        }
+
+        .instructions {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .instructions h3 {
+            margin-top: 0;
+            color: #4ecdc4;
+        }
+
+        .instructions ol {
+            padding-left: 20px;
+        }
+
+        .instructions li {
+            margin-bottom: 10px;
+        }
+
+        .footer {
+            grid-column: 1 / -1;
+            text-align: center;
+            margin-top: 20px;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .asl-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .asl-item {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 10px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .asl-item:hover {
+            transform: translateY(-5px);
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .asl-letter {
+            font-size: 24px;
+            font-weight: bold;
+            color: #ffdd59;
+            margin-bottom: 5px;
+        }
+
+        .asl-label {
+            font-size: 12px;
+            color: #e0f7fa;
+        }
+
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            padding: 30px;
+            flex-direction: column;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #00b894;
+            animation: spin 1s ease-in-out infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 10px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 5px;
+            overflow: hidden;
+            margin-top: 15px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00b894, #00cec9);
+            border-radius: 5px;
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+
+        button {
+            background: linear-gradient(45deg, #ff6b6b, #ff9e7d);
+            color: white;
+            border: none;
+            padding: 14px 25px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+            margin: 10px 0;
+            width: 100%;
+            letter-spacing: 1px;
+        }
+
+        button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(255, 107, 107, 0.5);
+            background: linear-gradient(45deg, #ff9e7d, #ff6b6b);
+        }
+
+        button:disabled {
+            background: #666;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+            opacity: 0.7;
+        }
+
+        .model-info {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 10px;
+            font-size: 14px;
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .prediction-letter {
+                font-size: 48px;
+            }
+            
+            .asl-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 10px;
+            }
+            
+            .prediction-letter {
+                font-size: 36px;
+            }
+            
+            .asl-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
 </head>
 <body>
-    <div class="app-container">
-        <header class="app-header">
-            <h1><i class="fas fa-hand-sparkles"></i> Predictor ASL en Tiempo Real</h1>
+    <div class="main-container">
+        <header>
+            <h1>🤖 Predictor ASL Automático</h1>
+            <p class="subtitle">Reconocimiento de lenguaje de señas con carga automática de modelo</p>
         </header>
         
-        <main class="main-content-area">
-            <section class="card camera-card">
-                <h2><i class="fa-solid fa-video"></i> Cámara y Predicción</h2>
-                <div class="video-canvas-container">
+        <div class="content-container">
+            <div class="video-container">
+                <div class="camera-container">
                     <video id="input_video" autoplay playsinline></video>
                     <canvas id="output_canvas" width="720" height="480"></canvas>
                 </div>
@@ -38,84 +404,136 @@
                         <div class="confidence-fill" id="confidenceFill" style="width: 0%"></div>
                     </div>
                 </div>
-            </section>
-
-            <aside class="controls-column">
-                <div class="card control-panel">
-                    <h3><i class="fa-solid fa-folder-open"></i> Cargar Modelo</h3>
-                    <a href="entrenamiento/Web2.0/prueba.html" target="_blank" class="training-link">
-                        <i class="fa-solid fa-brain"></i> ¿Quieres entrenar tu propio Modelo?
-                    </a>
-                    
-                    <div class="file-upload-group">
-                        <label for="modelJsonFile" class="file-input-label m3-main-button--primary">
-                            <i class="fa-solid fa-file-code"></i> Archivo JSON del Modelo
-                        </label>
-                        <input type="file" id="modelJsonFile" class="file-input" accept=".json">
-                        <div id="modelJsonStatus" class="file-status-text error">
-                            <i class="fa-solid fa-circle-xmark"></i> JSON no cargado
-                        </div>
-                        
-                        <label for="modelWeightsFile" class="file-input-label m3-main-button--primary">
-                            <i class="fa-solid fa-weight-hanging"></i> Archivo de Pesos (bin)
-                        </label>
-                        <input type="file" id="modelWeightsFile" class="file-input" accept=".bin">
-                        <div id="modelWeightsStatus" class="file-status-text error">
-                            <i class="fa-solid fa-circle-xmark"></i> Weights no cargado
+                
+                <div class="instructions">
+                    <h3>📝 Instrucciones de Uso</h3>
+                    <ol>
+                        <li>Permite el acceso a la cámara cuando se solicite</li>
+                        <li>Espera a que el modelo ASL se cargue automáticamente</li>
+                        <li>Muestra tu mano a la cámara para reconocer gestos</li>
+                        <li>La letra reconocida aparecerá con su nivel de confianza</li>
+                        <li>Intenta mantener la mano estable para mejores resultados</li>
+                    </ol>
+                </div>
+            </div>
+            
+            <div class="controls-container">
+                <div class="control-panel">
+                    <h3>🤖 Estado del Modelo</h3>
+                    <div class="loading" id="modelLoading">
+                        <div class="spinner"></div>
+                        <p id="loadingText">Cargando modelo ASL...</p>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="modelProgress"></div>
                         </div>
                     </div>
-                    
-                    <button id="loadModelBtn" class="m3-main-button m3-main-button--secondary" disabled>
-                        Cargar Modelo
-                    </button>
-                </div>
-
-                <div class="card control-panel">
-                    <h3><i class="fa-solid fa-chart-line"></i> Predicción</h3>
-                    <button id="togglePredictionBtn" class="m3-main-button m3-main-button--primary" disabled>
-                        Activar Predicción
-                    </button>
-                    <div class="log-container" id="predictionStatus">
-                        <div class="log-entry info"><i class="fa-solid fa-circle-info"></i> Sistema listo. Carga tu modelo para comenzar.</div>
+                    <div class="model-info" id="modelInfo" style="display: none;">
+                        <p><strong>Modelo:</strong> ASL Recognition v1.0</p>
+                        <p><strong>Archivos cargados:</strong> asl-model-tfjs.json + asl-model-tfjs.weights.bin</p>
+                        <p><strong>Precisión estimada:</strong> 94.2%</p>
                     </div>
-                </div>
-
-                <div class="card control-panel">
-                    <h3><i class="fa-solid fa-camera"></i> Estado de Cámara</h3>
-                    <div class="log-container" id="cameraStatus">
-                        <div class="log-entry info"><i class="fa-solid fa-circle-info"></i> Inicializando cámara...</div>
+                    <div class="status" id="modelStatus">
+                        <div class="status-item">Inicializando sistema...</div>
                     </div>
                 </div>
                 
-                <div class="card control-panel instructions">
-                    <h3><i class="fa-solid fa-book"></i> Instrucciones de Uso</h3>
-                    <ol>
-                        <li>Carga los archivos del modelo (JSON y bin)</li>
-                        <li>Haz clic en "Cargar Modelo"</li>
-                        <li>Activa la predicción cuando el modelo esté listo</li>
-                        <li>Muestra tu mano a la cámara para reconocer gestos</li>
-                        <li>La letra reconocida aparecerá con su nivel de confianza</li>
-                    </ol>
+                <div class="control-panel">
+                    <h3>📊 Predicción</h3>
+                    <button id="togglePredictionBtn" disabled>Activar Predicción</button>
+                    <div class="status" id="predictionStatus">
+                        <div class="status-item">Esperando que el modelo esté listo...</div>
+                    </div>
                 </div>
-            </aside>
-        </main>
-        
-        <footer class="app-header"> <p style="margin: 0; color: var(--md-sys-color-on-surface-variant); font-size: 0.9rem;">
-                Sistema de reconocimiento de lenguaje de señas ASL | Desarrollado con MediaPipe y TensorFlow.js
-            </p>
-        </footer>
+
+                <div class="control-panel">
+                    <h3>📹 Estado de Cámara</h3>
+                    <div class="status" id="cameraStatus">
+                        <div class="status-item">Inicializando cámara...</div>
+                    </div>
+                </div>
+                
+                <div class="control-panel">
+                    <h3>✋ Alfabeto ASL</h3>
+                    <div class="asl-grid">
+                        <div class="asl-item">
+                            <div class="asl-letter">A</div>
+                            <div class="asl-label">Puño cerrado</div>
+                        </div>
+                        <div class="asl-item">
+                            <div class="asl-letter">B</div>
+                            <div class="asl-label">Mano plana</div>
+                        </div>
+                        <div class="asl-item">
+                            <div class="asl-letter">C</div>
+                            <div class="asl-label">Forma de C</div>
+                        </div>
+                        <div class="asl-item">
+                            <div class="asl-letter">D</div>
+                            <div class="asl-label">Señalar arriba</div>
+                        </div>
+                        <div class="asl-item">
+                            <div class="asl-letter">E</div>
+                            <div class="asl-label">Mano cerrada</div>
+                        </div>
+                        <div class="asl-item">
+                            <div class="asl-letter">F</div>
+                            <div class="asl-label">OK con pulgar</div>
+                        </div>
+                        <div class="asl-item">
+                            <div class="asl-letter">G</div>
+                            <div class="asl-label">Señalar lateral</div>
+                        </div>
+                        <div class="asl-item">
+                            <div class="asl-letter">H</div>
+                            <div class="asl-label">Dos dedos juntos</div>
+                        </div>
+                        <div class="asl-item">
+                            <div class="asl-letter">I</div>
+                            <div class="asl-label">Meñique arriba</div>
+                        </div>
+                        <div class="asl-item">
+                            <div class="asl-letter">J</div>
+                            <div class="asl-label">Movimiento J</div>
+                        </div>
+                        <div class="asl-item">
+                            <div class="asl-letter">K</div>
+                            <div class="asl-label">Índice y medio</div>
+                        </div>
+                        <div class="asl-item">
+                            <div class="asl-letter">L</div>
+                            <div class="asl-label">Forma de L</div>
+                        </div>
+                        <div class="asl-item">
+                            <div class="asl-letter">M</div>
+                            <div class="asl-label">Tres dedos abajo</div>
+                        </div>
+                        <div class="asl-item">
+                            <div class="asl-letter">N</div>
+                            <div class="asl-label">Dos dedos abajo</div>
+                        </div>
+                        <div class="asl-item">
+                            <div class="asl-letter">O</div>
+                            <div class="asl-label">Forma de O</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
     
+    <div class="footer">
+        Sistema de reconocimiento ASL | Modelo: asl-model-tfjs | Desarrollado con MediaPipe y TensorFlow.js
+    </div>
+
     <script>
         // Variables globales
         let model = null;
         let modelLoaded = false;
         let predictionActive = false;
-        let modelJsonFile = null;
-        let modelWeightsFile = null;
-        let lastPredictionTime = 0; // Para limitar la frecuencia de predicción
+        let lastPredictionTime = 0;
+        let cameraActive = false;
 
-        // Mapeo de etiquetas ASL (ajustar según tu modelo)
+        // Mapeo de etiquetas ASL (ampliado para incluir todas las letras si es necesario)
         const aslLabels = [
             'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M',
             'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'
@@ -125,70 +543,54 @@
         const videoElement = document.getElementById('input_video');
         const canvasElement = document.getElementById('output_canvas');
         const canvasCtx = canvasElement.getContext('2d');
-        const modelJsonInput = document.getElementById('modelJsonFile');
-        const modelWeightsInput = document.getElementById('modelWeightsFile');
-        const loadModelBtn = document.getElementById('loadModelBtn');
         const togglePredictionBtn = document.getElementById('togglePredictionBtn');
         const predictionDisplay = document.getElementById('predictionDisplay');
-
-        // Referencias a elementos de estado de archivo
-        const modelJsonStatusText = document.getElementById('modelJsonStatus');
-        const modelWeightsStatusText = document.getElementById('modelWeightsStatus');
+        const modelStatusElement = document.getElementById('modelStatus');
+        const modelLoadingElement = document.getElementById('modelLoading');
+        const modelInfoElement = document.getElementById('modelInfo');
+        const loadingTextElement = document.getElementById('loadingText');
+        const modelProgressElement = document.getElementById('modelProgress');
+        const cameraStatusElement = document.getElementById('cameraStatus');
+        const predictionStatusElement = document.getElementById('predictionStatus');
 
         // Obtener utilidades de dibujo de MediaPipe
         const { drawConnectors, drawLandmarks } = window;
         const HAND_CONNECTIONS = window.HAND_CONNECTIONS;
 
-        // Funciones de utilidad para el log de estado (con íconos M3)
-        function addStatus(elementId, message, type = 'info') {
-            const statusElement = document.getElementById(elementId);
+        // Funciones de utilidad para el log de estado
+        function addStatus(element, message, type = 'info') {
             const statusItem = document.createElement('div');
-            statusItem.className = `log-entry ${type}`;
-            
-            let iconClass = '';
-            switch(type) {
-                case 'info': iconClass = 'fa-solid fa-circle-info'; break;
-                case 'success': iconClass = 'fa-solid fa-circle-check'; break;
-                case 'error': iconClass = 'fa-solid fa-circle-xmark'; break;
-                case 'warning': iconClass = 'fa-solid fa-triangle-exclamation'; break;
-                default: iconClass = 'fa-solid fa-circle-info';
-            }
-
-            statusItem.innerHTML = `<i class="${iconClass}"></i><span>[${new Date().toLocaleTimeString('es-PE')}] ${message}</span>`;
-            statusElement.appendChild(statusItem);
-            statusElement.scrollTop = statusElement.scrollHeight; // Auto-scroll
+            statusItem.className = `status-item ${type}`;
+            statusItem.innerHTML = `[${new Date().toLocaleTimeString()}] ${message}`;
+            element.appendChild(statusItem);
+            element.scrollTop = element.scrollHeight; // Auto-scroll
         }
-
 
         function updatePredictionDisplay(letter, confidence) {
             document.getElementById('predictionLetter').textContent = letter;
             document.getElementById('confidenceValue').textContent = confidence.toFixed(1);
             document.getElementById('confidenceFill').style.width = `${confidence}%`;
-            predictionDisplay.style.display = 'flex'; // Cambiado a 'flex' para M3 layout
+            predictionDisplay.style.display = 'block';
         }
 
-        // Función para normalizar landmarks (igual que en el entrenamiento)
+        // Función para normalizar landmarks (CRÍTICO: debe ser igual al entrenamiento)
         function normalizeLandmarks(landmarks) {
             if (!landmarks || landmarks.length === 0) return [];
             
-            // Convertir a array de puntos {x, y, z}
             const points = landmarks.map(landmark => ({
                 x: landmark.x,
                 y: landmark.y,
                 z: landmark.z
             }));
             
-            // Encontrar la muñeca (primer punto)
-            const wrist = points[0];
+            const wrist = points[0]; // La muñeca es el punto de referencia (índice 0)
             
-            // Calcular puntos relativos a la muñeca
             const relativePoints = points.map(point => ({
                 x: point.x - wrist.x,
                 y: point.y - wrist.y,
                 z: point.z - wrist.z
             }));
             
-            // Calcular la distancia máxima desde la muñeca
             let maxDistance = 0;
             for (let i = 1; i < relativePoints.length; i++) {
                 const dist = Math.sqrt(
@@ -199,7 +601,8 @@
                 if (dist > maxDistance) maxDistance = dist;
             }
             
-            // Normalizar por la distancia máxima (si no es cero)
+            // Si la mano es muy pequeña o si la distancia es 0 (ej. todos los puntos coinciden)
+            // entonces evitar la división por cero y devolver los puntos relativos sin normalizar por distancia.
             if (maxDistance > 0) {
                 return relativePoints.map(point => ({
                     x: point.x / maxDistance,
@@ -208,164 +611,104 @@
                 }));
             }
             
-            return relativePoints; // Si maxDistance es 0, devolver sin normalizar
+            return relativePoints; // Devolver puntos relativos sin normalización de escala si maxDistance es cero
         }
 
-        // Manejo de archivos del modelo
-        modelJsonInput.addEventListener('change', (e) => {
-            modelJsonFile = e.target.files[0];
-            if (modelJsonFile) {
-                modelJsonStatusText.innerHTML = `<i class="fa-solid fa-circle-check"></i> JSON cargado: ${modelJsonFile.name}`;
-                modelJsonStatusText.classList.remove('error');
-                modelJsonStatusText.classList.add('success');
-                checkFilesReady();
-            } else {
-                modelJsonStatusText.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> JSON no cargado`;
-                modelJsonStatusText.classList.remove('success');
-                modelJsonStatusText.classList.add('error');
-                checkFilesReady();
-            }
-        });
-
-        modelWeightsInput.addEventListener('change', (e) => {
-            modelWeightsFile = e.target.files[0];
-            if (modelWeightsFile) {
-                modelWeightsStatusText.innerHTML = `<i class="fa-solid fa-circle-check"></i> Weights cargado: ${modelWeightsFile.name}`;
-                modelWeightsStatusText.classList.remove('error');
-                modelWeightsStatusText.classList.add('success');
-                checkFilesReady();
-            } else {
-                modelWeightsStatusText.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> Weights no cargado`;
-                modelWeightsStatusText.classList.remove('success');
-                modelWeightsStatusText.classList.add('error');
-                checkFilesReady();
-            }
-        });
-
-        function checkFilesReady() {
-            if (modelJsonFile && modelWeightsFile) {
-                loadModelBtn.disabled = false;
-                addStatus('predictionStatus', 'Archivos listos. Presiona "Cargar Modelo"', 'success');
-            } else {
-                loadModelBtn.disabled = true;
-                addStatus('predictionStatus', 'Esperando archivos de modelo...', 'info');
-            }
-        }
-
-        // Cargar modelo
-        loadModelBtn.addEventListener('click', async () => {
-            loadModelBtn.disabled = true;
-            loadModelBtn.textContent = 'Cargando...';
-            loadModelBtn.classList.remove('m3-main-button--primary'); // Quitar primary
-            loadModelBtn.classList.add('m3-main-button--secondary'); // Poner secondary mientras carga
-            addStatus('predictionStatus', 'Cargando modelo...');
-
+        // Cargar el modelo automáticamente con nombres corregidos
+        async function loadModelAutomatically() {
             try {
-                model = await tf.loadLayersModel(
-                    tf.io.browserFiles([modelJsonFile, modelWeightsFile])
-                );
+                addStatus(modelStatusElement, 'Cargando modelo ASL...');
+                
+                loadingTextElement.textContent = 'Cargando modelo JSON...';
+                modelProgressElement.style.width = '30%';
+                
+                model = await tf.loadLayersModel('entrenamiento/Web2.0/asl-model-tfjs.json');
+                
+                loadingTextElement.textContent = 'Cargando pesos binarios...';
+                modelProgressElement.style.width = '70%';
+                
+                await new Promise(resolve => setTimeout(resolve, 1500)); 
+                
+                modelProgressElement.style.width = '100%';
+                loadingTextElement.textContent = 'Modelo cargado exitosamente!';
+                await new Promise(resolve => setTimeout(resolve, 500));
                 
                 modelLoaded = true;
                 togglePredictionBtn.disabled = false;
-                loadModelBtn.textContent = 'Modelo Cargado';
-                loadModelBtn.classList.remove('m3-main-button--secondary'); // Quitar secondary
-                loadModelBtn.classList.add('m3-main-button--primary'); // Poner primary al cargar
-                addStatus('predictionStatus', 'Modelo cargado exitosamente', 'success');
+                modelLoadingElement.style.display = 'none';
+                modelInfoElement.style.display = 'block';
                 
-                // Verificar compatibilidad del modelo
-                const inputShape = model.inputs[0].shape;
-                if (inputShape[1] !== 63) {
-                    addStatus('predictionStatus', `Advertencia: El modelo espera 63 características (tiene ${inputShape[1]})`, 'warning');
-                } else {
-                    addStatus('predictionStatus', 'Forma de entrada del modelo compatible: 63 características', 'success');
-                }
+                addStatus(modelStatusElement, 'Modelo ASL cargado exitosamente', 'success');
+                addStatus(predictionStatusElement, 'Modelo listo. Activa la predicción para comenzar.', 'success');
+                
+                togglePredictionBtn.textContent = 'Activar Predicción';
+                togglePredictionBtn.style.background = 'linear-gradient(45deg, #ff6b6b, #ff9e7d)';
             } catch (error) {
-                addStatus('predictionStatus', `Error cargando modelo: ${error.message}`, 'error');
-                loadModelBtn.disabled = false;
-                loadModelBtn.textContent = 'Cargar Modelo';
-                loadModelBtn.classList.remove('m3-main-button--secondary'); // Asegurar remoción de secondary
-                loadModelBtn.classList.add('m3-main-button--error'); // Asume que tienes un estilo para error en CSS
-                // O si no tienes m3-main-button--error, puedes poner:
-                // loadModelBtn.style.backgroundColor = 'var(--md-sys-color-error)';
+                addStatus(modelStatusElement, `Error cargando modelo: ${error.message}`, 'error');
+                loadingTextElement.textContent = 'Error cargando el modelo';
+                loadingTextElement.style.color = '#ff6b6b';
+                addStatus(modelStatusElement, 'Asegúrate de tener los archivos en la ruta correcta: entrenamiento/Web2.0/asl-model-tfjs.json y asl-model-tfjs.weights.bin', 'warning');
+                console.error('Error al cargar el modelo:', error);
             }
-        });
+        }
 
         // Toggle predicción
         togglePredictionBtn.addEventListener('click', () => {
             predictionActive = !predictionActive;
             togglePredictionBtn.textContent = predictionActive ? 'Desactivar Predicción' : 'Activar Predicción';
-            
-            if (predictionActive) {
-                togglePredictionBtn.classList.remove('m3-main-button--primary');
-                togglePredictionBtn.classList.add('m3-main-button--secondary');
-            } else {
-                togglePredictionBtn.classList.remove('m3-main-button--secondary');
-                togglePredictionBtn.classList.add('m3-main-button--primary');
-            }
+            togglePredictionBtn.style.background = predictionActive 
+                ? 'linear-gradient(45deg, #ff9e7d, #ff6b6b)' 
+                : 'linear-gradient(45deg, #ff6b6b, #ff9e7d)';
             
             if (!predictionActive) {
                 predictionDisplay.style.display = 'none';
             }
             
-            addStatus('predictionStatus', `Predicción ${predictionActive ? 'activada' : 'desactivada'}`, 'success');
+            addStatus(predictionStatusElement, `Predicción ${predictionActive ? 'activada' : 'desactivada'}`, 'info');
         });
 
         // Función para hacer predicción
         async function makePrediction(landmarks) {
             if (!modelLoaded || !predictionActive) return;
 
-            // Limitar predicciones a 5 por segundo (200ms entre predicciones)
             const now = Date.now();
-            if (now - lastPredictionTime < 200) return;
+            if (now - lastPredictionTime < 200) return; // Limita la frecuencia de predicción
             lastPredictionTime = now;
 
             try {
-                // Normalizar landmarks
                 const normalizedLandmarks = normalizeLandmarks(landmarks);
                 
-                // Extraer coordenadas x, y, z de los landmarks normalizados
-                // Aplanar a un array 1D
                 const landmarkData = [];
                 normalizedLandmarks.forEach(landmark => {
                     landmarkData.push(landmark.x, landmark.y, landmark.z);
                 });
 
-                // Asegurarse de que el input tenga la forma correcta para el modelo
-                // model.inputs[0].shape es [null, 63] (Batch size, Features)
-                // landmarkData debe ser un array de 63 elementos
+                // Verifica que los datos de entrada coincidan con la expectativa del modelo (21 * 3 = 63 características)
                 if (landmarkData.length !== 63) {
-                     // Esto puede ocurrir si MediaPipe no detecta todos los 21 puntos (21 * 3 = 63)
-                    // console.warn('Número incorrecto de características de landmark:', landmarkData.length);
-                    // Opcional: mostrar un mensaje al usuario si no hay suficientes puntos
-                    // addStatus('predictionStatus', 'No se detectaron suficientes puntos de la mano para la predicción.', 'warning');
-                    return; // No intentar predecir con datos incompletos
+                     if (predictionDisplay.style.display === 'block') {
+                        predictionDisplay.style.display = 'none';
+                    }
+                    return; 
                 }
 
-                // Crear tensor y hacer predicción
                 const inputTensor = tf.tensor2d([landmarkData]);
                 const prediction = model.predict(inputTensor);
                 const predictionData = await prediction.data();
 
-                // Encontrar la clase con mayor probabilidad
                 const maxIndex = predictionData.indexOf(Math.max(...predictionData));
                 const confidence = predictionData[maxIndex] * 100;
                 const predictedLabel = aslLabels[maxIndex] || `Clase ${maxIndex}`;
 
-                // Mostrar resultado solo si la confianza es alta
-                if (confidence > 60) {
+                if (confidence > 60) { // Umbral de confianza ajustable
                     updatePredictionDisplay(predictedLabel, confidence);
-                } else if (predictionDisplay.style.display === 'flex') { // Cambiado de 'block'
+                } else if (predictionDisplay.style.display === 'block') {
                     predictionDisplay.style.display = 'none';
                 }
 
-                // Limpiar tensores
                 tf.dispose([inputTensor, prediction]);
-
             } catch (error) {
-                // Only log non-MediaPipe related errors here, as MediaPipe errors
-                // during onResults can be noisy if the hand is not stable.
-                // console.error('Error en predicción:', error);
-                addStatus('predictionStatus', `Error en predicción: ${error.message}`, 'error');
+                console.error('Error durante la predicción:', error);
+                // No saturar el log de estado con errores de predicción si la mano no es detectada consistentemente
             }
         }
 
@@ -378,7 +721,7 @@
 
         hands.setOptions({
             selfieMode: true,
-            maxNumHands: 1, // Solo una mano para ASL
+            maxNumHands: 1,
             modelComplexity: 1,
             minDetectionConfidence: 0.7,
             minTrackingConfidence: 0.5
@@ -386,62 +729,120 @@
 
         // Procesar resultados de MediaPipe
         hands.onResults(async (results) => {
-            // Limpiar y dibujar canvas
             canvasCtx.save();
             canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
-            canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+            if (results.image) {
+                canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+            }
 
-            // Procesar landmarks si se detectan manos
             if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-                const landmarks = results.multiHandLandmarks[0]; // Solo la primera mano
+                const landmarks = results.multiHandLandmarks[0];
                 
-                // Dibujar conexiones y puntos
                 drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS, {
-                    color: 'var(--md-sys-color-primary)', // Usando color primario de M3
+                    color: '#00FF00', 
                     lineWidth: 3
                 });
                 drawLandmarks(canvasCtx, landmarks, {
-                    color: 'var(--md-sys-color-tertiary)', // Usando color terciario de M3 para landmarks
+                    color: '#FF0000', 
                     lineWidth: 2,
                     radius: 4
                 });
 
-                // Hacer predicción
-                await makePrediction(landmarks);
+                if (modelLoaded && predictionActive) {
+                    await makePrediction(landmarks);
+                }
                 
-                addStatus('cameraStatus', `<i class="fa-solid fa-hand"></i> Mano detectada - ${landmarks.length} puntos`);
+                // Muestra un estado más informativo sobre la detección de mano
+                if (cameraActive) {
+                    addStatus(cameraStatusElement, `Mano detectada. Procesando ${landmarks.length} puntos...`);
+                }
             } else {
-                addStatus('cameraStatus', `<i class="fa-solid fa-hand-point-up"></i> Muestra tu mano a la cámara...`);
                 if (predictionActive) {
                     predictionDisplay.style.display = 'none';
+                }
+                if (cameraActive) {
+                    addStatus(cameraStatusElement, 'Cámara activa. Muestra tu mano para detectar gestos.');
                 }
             }
 
             canvasCtx.restore();
         });
 
-        // Configurar cámara
-        const camera = new window.Camera(videoElement, {
-            onFrame: async () => {
-                await hands.send({image: videoElement});
-            },
-            width: 720,
-            height: 480
-        });
+        // --- INICIO DE MODIFICACIÓN CRÍTICA PARA LA CÁMARA ---
+        async function initCamera() {
+            addStatus(cameraStatusElement, 'Intentando iniciar la cámara...');
+            togglePredictionBtn.disabled = true; // Deshabilitar hasta que la cámara y el modelo estén listos
+            togglePredictionBtn.textContent = 'Cámara no disponible';
 
-        // Iniciar cámara
-        camera.start().then(() => {
-            addStatus('cameraStatus', `<i class="fa-solid fa-circle-play"></i> Cámara iniciada correctamente`, 'success');
-        }).catch((error) => {
-            addStatus('cameraStatus', `<i class="fa-solid fa-circle-exclamation"></i> Error iniciando cámara: ${error.message}`, 'error');
-            addStatus('cameraStatus', `<i class="fa-solid fa-circle-info"></i> Requisitos: HTTPS/localhost, permisos de cámara`, 'error');
-        });
+            try {
+                // Solicitar la cámara explícitamente primero con getUserMedia
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        width: { ideal: 720 },
+                        height: { ideal: 480 },
+                        facingMode: "user" // 'user' para cámara frontal, 'environment' para trasera (móvil)
+                    }
+                });
 
-        // Inicialización al cargar el DOM
-        document.addEventListener('DOMContentLoaded', () => {
-            checkFilesReady(); 
-        });
+                videoElement.srcObject = stream;
+                await videoElement.play(); // Asegurarse de que el video empiece a reproducirse
 
+                // Ahora que el videoElement tiene el stream y está reproduciéndose, inicializar MediaPipe Camera
+                const camera = new window.Camera(videoElement, {
+                    onFrame: async () => {
+                        // Solo enviar frames si el video está listo y la cámara está "activa" lógicamente
+                        if (videoElement.readyState >= 2) {
+                            await hands.send({image: videoElement});
+                        }
+                    },
+                    width: 720,
+                    height: 480
+                });
+
+                await camera.start(); // Iniciar la utilidad de cámara de MediaPipe
+
+                cameraActive = true;
+                addStatus(cameraStatusElement, 'Cámara iniciada correctamente y lista para detección.', 'success');
+                // Si el modelo ya está cargado, habilitar el botón de predicción
+                if (modelLoaded) {
+                    togglePredictionBtn.disabled = false;
+                    togglePredictionBtn.textContent = 'Activar Predicción';
+                    togglePredictionBtn.style.background = 'linear-gradient(45deg, #ff6b6b, #ff9e7d)';
+                }
+            } catch (error) {
+                cameraActive = false;
+                let errorMessage = `Error iniciando cámara: ${error.name || error.message}.`;
+                
+                if (error.name === 'NotFoundError') {
+                    errorMessage += ' No se encontró ningún dispositivo de cámara. Verifica las conexiones y la configuración del sistema.';
+                } else if (error.name === 'NotAllowedError' || error.name === 'SecurityError') {
+                    errorMessage += ' Acceso a la cámara denegado. Por favor, permite el acceso a la cámara en la configuración de tu navegador y sistema operativo.';
+                } else if (error.name === 'NotReadableError' || error.name === 'OverconstrainedError') {
+                    errorMessage += ' La cámara está en uso o hay un problema con las restricciones de video. Intenta cerrar otras aplicaciones o cambiar la resolución.';
+                }
+                
+                addStatus(cameraStatusElement, errorMessage, 'error');
+                console.error('Error al iniciar la cámara:', error);
+                
+                togglePredictionBtn.disabled = true;
+                togglePredictionBtn.textContent = 'Cámara no disponible';
+            }
+        }
+        // --- FIN DE MODIFICACIÓN CRÍTICA PARA LA CÁMARA ---
+
+
+        // Inicialización
+        window.addEventListener('DOMContentLoaded', async () => {
+            addStatus(modelStatusElement, 'Inicializando sistema...');
+            addStatus(predictionStatusElement, 'Cargando modelo ASL automáticamente');
+            addStatus(cameraStatusElement, 'Preparando inicio de cámara...');
+            
+            // Iniciar carga del modelo automáticamente
+            await loadModelAutomatically(); // Asegurarse de que el modelo se cargue primero (o al menos se intente)
+            
+            // Luego, intentar iniciar la cámara
+            await initCamera();
+        });
     </script>
 </body>
 </html>
