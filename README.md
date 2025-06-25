@@ -2,7 +2,8 @@
 # senials.github.io
 ![alt text](image.png)
 =======
-# senials.github.io```mermaid
+# senials.github.io
+```mermaid
 barChart
     title Ventas por Mes
     xAxis Ene Feb Mar Abr May Jun
