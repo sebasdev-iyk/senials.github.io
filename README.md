@@ -15,21 +15,6 @@ Este diagrama muestra el proceso completo de análisis de señales que implement
 4. Clasificación mediante modelos de ML  
 5. Visualización de resultados  
 
-## Análisis de Resultados (Mermaid)
-
-Distribución estadística de los resultados obtenidos:
-
-```mermaid
-bar
-    title Distribución de Resultados por Categoría
-    xAxis Baja Media Alta Crítica
-    yAxis 0 20 40 60
-    bar 35
-    bar 60
-    bar 45
-    bar 20
-```
-
 **Interpretación:**  
 - **Media**: 60% de las señales requieren monitoreo continuo  
 - **Crítica**: 20% necesita intervención inmediata  
