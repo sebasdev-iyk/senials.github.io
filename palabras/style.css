@@ -1,0 +1,56 @@
+body {
+    font-family: sans-serif;
+    margin: 0;
+    background-color: #222;
+    color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    flex-direction: column;
+}
+.container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+}
+#output_canvas {
+    border: 2px solid red; /* Cambiado a rojo por defecto */
+    border-radius: 10px;
+    width: 640px;
+    height: 480px;
+}
+#prediction_letter {
+    font-size: 5rem;
+    font-weight: bold;
+    min-height: 80px; /* Reserve space */
+}
+#predicted_word {
+    font-size: 3rem;
+    font-weight: bold;
+    color: #4CAF50;
+    min-height: 60px; /* Reserve space */
+    border: 2px solid #4CAF50;
+    padding: 10px 20px;
+    border-radius: 10px;
+    margin-top: 10px;
+}
+.controls {
+    margin-top: 20px;
+    display: flex;
+    gap: 15px;
+}
+.controls button {
+    padding: 10px 20px;
+    font-size: 1rem;
+    cursor: pointer;
+    border-radius: 5px;
+    border: none;
+    background-color: #4CAF50;
+    color: white;
+    font-weight: bold;
+}
+.controls button.clear {
+    background-color: #f44336;
+}

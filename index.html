@@ -59,6 +59,24 @@
             color: #e0f7fa;
             max-width: 800px;
             margin: 0 auto;
+            margin-bottom: 20px;
+        }
+
+        .learn-btn {
+            display: inline-block;
+            background: linear-gradient(45deg, #00b894, #00cec9);
+            color: white;
+            padding: 12px 25px;
+            border-radius: 25px;
+            text-decoration: none;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 206, 201, 0.4);
+        }
+
+        .learn-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0, 206, 201, 0.6);
         }
 
         .content-container {
@@ -386,6 +404,7 @@
         <header>
             <h1>🤖 Predictor ASL Automático</h1>
             <p class="subtitle">Reconocimiento de lenguaje de señas con carga automática de modelo</p>
+            <a href="aprender/index.html" class="learn-btn">Aprender Señas</a>
         </header>
         
         <div class="content-container">

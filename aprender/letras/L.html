@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aprender Letra L</title>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tensorflow/4.10.0/tf.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; margin: 0; padding: 20px; background: linear-gradient(135deg, #1a2980 0%, #26d0ce 100%); min-height: 100vh; color: white; overflow-x: hidden; }
+        .main-container { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 1fr; gap: 20px; }
+        header { text-align: center; margin-bottom: 20px; padding: 20px; background: rgba(0, 0, 0, 0.2); border-radius: 15px; }
+        h1 { font-size: 2.8rem; color: #ffdd59; margin-bottom: 10px; text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); }
+        .subtitle { font-size: 1.2rem; color: #e0f7fa; max-width: 800px; margin: 0 auto; }
+        .content-container { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        @media (max-width: 900px) { .content-container { grid-template-columns: 1fr; } }
+        .video-container, .controls-container { background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); border-radius: 20px; padding: 20px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3); }
+        .camera-container { position: relative; width: 100%; max-width: 720px; margin: 0 auto 15px; border-radius: 15px; overflow: hidden; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4); }
+        #output_canvas { width: 100%; height: auto; border-radius: 15px; transform: scaleX(-1); display: block; background: #000; transition: border 0.3s ease; }
+        .prediction-display { text-align: center; padding: 15px; background: rgba(0, 0, 0, 0.3); border-radius: 15px; }
+        .prediction-letter { font-size: 48px; font-weight: bold; color: #ffdd59; }
+        .status { background: rgba(0, 0, 0, 0.3); border-radius: 15px; padding: 20px; margin-top: 10px; text-align: center; font-size: 1.3rem; font-weight: bold; }
+        .status-item { padding: 10px; border-radius: 10px; transition: all 0.3s ease; }
+        .status-item.error { background: #ff6b6b; color: white; }
+        .status-item.success { background: #00b894; color: white; }
+        .status-item.warning { background: #feca57; color: #333; }
+        .navigation-container { display: flex; justify-content: space-between; margin-top: 20px; }
+        .nav-btn { background: rgba(255, 255, 255, 0.2); color: white; border: none; padding: 12px 25px; border-radius: 25px; cursor: pointer; font-size: 16px; font-weight: bold; transition: all 0.3s ease; text-decoration: none; }
+        .nav-btn:hover { background: rgba(255, 255, 255, 0.4); }
+        .nav-btn.disabled { background: rgba(255, 255, 255, 0.1); cursor: not-allowed; opacity: 0.6; }
+        .back-link { display: inline-block; margin-top: 20px; padding: 12px 25px; background: rgba(255, 255, 255, 0.15); color: white; text-decoration: none; border-radius: 25px; font-weight: bold; transition: background 0.3s ease; }
+        .back-link:hover { background: rgba(255, 255, 255, 0.3); }
+        .letter-display h1 { font-size: 5rem; }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <header>
+            <div class="letter-display"><h1>L</h1></div>
+            <p class="subtitle">Realiza la seña de la letra con tu mano y la cámara la detectará.</p>
+        </header>
+        <div class="content-container">
+            <div class="video-container">
+                <div class="camera-container">
+                    <video id="input_video" style="display: none;" autoplay playsinline></video>
+                    <canvas id="output_canvas" width="720" height="480"></canvas>
+                </div>
+                <div class="prediction-display" id="predictionDisplay" style="display: none;">
+                    Letra Detectada: <span class="prediction-letter" id="predictionLetter">--</span>
+                </div>
+            </div>
+            <div class="controls-container">
+                <h3>Estado de la Práctica</h3>
+                <div class="status" id="practiceStatus"><div class="status-item">Iniciando...</div></div>
+                <div class="navigation-container">
+                    <a href="#" id="prevBtn" class="nav-btn">Anterior</a>
+                    <a href="#" id="nextBtn" class="nav-btn">Siguiente</a>
+                </div>
+                <a href="../index.html" class="back-link">Volver al Abecedario</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const videoElement = document.getElementById('input_video');
+        const canvasElement = document.getElementById('output_canvas');
+        const canvasCtx = canvasElement.getContext('2d');
+        const predictionDisplay = document.getElementById('predictionDisplay');
+        const practiceStatusElement = document.getElementById('practiceStatus');
+        const targetLetter = document.querySelector('.letter-display h1').textContent.trim();
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+
+        let model = null, modelLoaded = false, cameraActive = false, lastPredictionTime = 0;
+        const aslLabels = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'];
+        const currentLetterIndex = aslLabels.indexOf(targetLetter);
+
+        function addStatus(element, message, type = 'info') {
+            const item = '<div class="status-item ' + type + '">' + message + '</div>';
+            element.innerHTML = item;
+        }
+
+        async function loadModel() {
+            try {
+                addStatus(practiceStatusElement, 'Cargando modelo de IA...');
+                model = await tf.loadLayersModel('../../entrenamiento/Web2.0/asl-model-tfjs.json');
+                modelLoaded = true;
+                addStatus(practiceStatusElement, '¡Listo para practicar!', 'success');
+            } catch (error) {
+                addStatus(practiceStatusElement, "Error al cargar el modelo: " + error.message, 'error');
+            }
+        }
+
+        function normalizeLandmarks(landmarks) {
+            const points = landmarks.map(lm => ({ x: lm.x, y: lm.y, z: lm.z }));
+            const wrist = points[0];
+            const relativePoints = points.map(p => ({ x: p.x - wrist.x, y: p.y - wrist.y, z: p.z - wrist.z }));
+            let maxDistance = 0;
+            for (let i = 1; i < relativePoints.length; i++) {
+                const dist = Math.sqrt(relativePoints[i].x ** 2 + relativePoints[i].y ** 2 + relativePoints[i].z ** 2);
+                if (dist > maxDistance) maxDistance = dist;
+            }
+            if (maxDistance > 0) {
+                return relativePoints.map(p => ({ x: p.x / maxDistance, y: p.y / maxDistance, z: p.z / maxDistance }));
+            }
+            return relativePoints;
+        }
+
+        async function makePrediction(landmarks) {
+            if (!modelLoaded || !cameraActive || Date.now() - lastPredictionTime < 500) return;
+            lastPredictionTime = Date.now();
+
+            const normalized = normalizeLandmarks(landmarks);
+            const flatData = [];
+            normalized.forEach(lm => flatData.push(lm.x, lm.y, lm.z));
+
+            if (flatData.length !== 63) return;
+
+            const inputTensor = tf.tensor2d([flatData]);
+            const prediction = model.predict(inputTensor);
+            const data = await prediction.data();
+            const maxIndex = data.indexOf(Math.max(...data));
+            const confidence = data[maxIndex] * 100;
+            const predictedLabel = aslLabels[maxIndex];
+
+            predictionDisplay.style.display = 'block';
+            document.getElementById('predictionLetter').textContent = predictedLabel;
+
+            if (confidence > 70) {
+                if (predictedLabel === targetLetter) {
+                    addStatus(practiceStatusElement, "¡Excelente!", 'success');
+                    canvasElement.style.boxShadow = '0 0 25px #00b894';
+                } else {
+                    addStatus(practiceStatusElement, "Detecté " + predictedLabel + ". ¡Sigue intentando!", 'warning');
+                    canvasElement.style.boxShadow = 'none';
+                }
+            } else {
+                addStatus(practiceStatusElement, 'Mostrando la mano...', 'info');
+                canvasElement.style.boxShadow = 'none';
+            }
+            tf.dispose([inputTensor, prediction]);
+        }
+
+        const hands = new Hands({ locateFile: (file) => "https://cdn.jsdelivr.net/npm/@mediapipe/hands/" + file });
+        hands.setOptions({ maxNumHands: 1, modelComplexity: 1, minDetectionConfidence: 0.7, minTrackingConfidence: 0.5 });
+
+        hands.onResults(async (results) => {
+            canvasCtx.save();
+            canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+            canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+            if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+                const landmarks = results.multiHandLandmarks[0];
+                drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS, { color: '#00FF00', lineWidth: 3 });
+                drawLandmarks(canvasCtx, landmarks, { color: '#FF0000', lineWidth: 2, radius: 4 });
+                if (modelLoaded) await makePrediction(landmarks);
+            } else {
+                canvasElement.style.boxShadow = 'none';
+            }
+            canvasCtx.restore();
+        });
+
+        async function initCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 720 }, height: { ideal: 480 } } });
+                videoElement.srcObject = stream;
+                await videoElement.play();
+                const camera = new window.Camera(videoElement, {
+                    onFrame: async () => await hands.send({ image: videoElement }),
+                    width: 720, height: 480
+                });
+                await camera.start();
+                cameraActive = true;
+            } catch (error) {
+                addStatus(practiceStatusElement, "Error al iniciar cámara: " + error.message, 'error');
+            }
+        }
+
+        function setupNavigation() {
+            if (currentLetterIndex > 0) {
+                prevBtn.href = aslLabels[currentLetterIndex - 1] + '.html';
+            } else {
+                prevBtn.classList.add('disabled');
+            }
+
+            if (currentLetterIndex < aslLabels.length - 1) {
+                nextBtn.href = aslLabels[currentLetterIndex + 1] + '.html';
+            } else {
+                nextBtn.classList.add('disabled');
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', async () => {
+            await initCamera();
+            await loadModel();
+            setupNavigation();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Predictor ASL</title>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tensorflow/4.10.0/tf.min.js"></script>
+    <style>
+        body {
+            font-family: sans-serif;
+            margin: 0;
+            background-color: #222;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            flex-direction: column;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+        #output_canvas {
+            border: 2px solid #555;
+            border-radius: 10px;
+            width: 640px;
+            height: 480px;
+        }
+        #prediction_letter {
+            font-size: 5rem;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <canvas id="output_canvas" width="640" height="480"></canvas>
+        <div id="prediction_letter"></div>
+    </div>
+
+    <video id="input_video" style="display: none;"></video>
+
+    <script>
+        const videoElement = document.getElementById('input_video');
+        const canvasElement = document.getElementById('output_canvas');
+        const canvasCtx = canvasElement.getContext('2d');
+        const predictionLetterElement = document.getElementById('prediction_letter');
+
+        let model;
+        const aslLabels = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'];
+
+        async function loadModel() {
+            try {
+                model = await tf.loadLayersModel('../entrenamiento/Web2.0/asl-model-tfjs.json');
+                console.log("Modelo cargado exitosamente");
+            } catch (error) {
+                console.error("Error al cargar el modelo:", error);
+            }
+        }
+
+        function normalizeLandmarks(landmarks) {
+            const wrist = landmarks[0];
+            const relativePoints = landmarks.map(point => ({
+                x: point.x - wrist.x,
+                y: point.y - wrist.y,
+                z: point.z - wrist.z
+            }));
+
+            let maxDistance = 0;
+            for (let i = 1; i < relativePoints.length; i++) {
+                const dist = Math.sqrt(
+                    relativePoints[i].x ** 2 +
+                    relativePoints[i].y ** 2 +
+                    relativePoints[i].z ** 2
+                );
+                if (dist > maxDistance) maxDistance = dist;
+            }
+
+            if (maxDistance > 0) {
+                return relativePoints.map(point => ({
+                    x: point.x / maxDistance,
+                    y: point.y / maxDistance,
+                    z: point.z / maxDistance
+                }));
+            }
+            return relativePoints;
+        }
+
+        async function onResults(results) {
+            canvasCtx.save();
+            canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+            canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+
+            if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+                const landmarks = results.multiHandLandmarks[0];
+                drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS, { color: '#00FF00', lineWidth: 5 });
+                drawLandmarks(canvasCtx, landmarks, { color: '#FF0000', lineWidth: 2 });
+
+                if (model) {
+                    const normalizedLandmarks = normalizeLandmarks(landmarks);
+                    const landmarkData = [];
+                    normalizedLandmarks.forEach(landmark => {
+                        landmarkData.push(landmark.x, landmark.y, landmark.z);
+                    });
+
+                    if (landmarkData.length === 63) {
+                        const inputTensor = tf.tensor2d([landmarkData]);
+                        const prediction = model.predict(inputTensor);
+                        const predictionData = await prediction.data();
+                        const maxIndex = predictionData.indexOf(Math.max(...predictionData));
+                        const confidence = predictionData[maxIndex];
+
+                        if (confidence > 0.7) {
+                            predictionLetterElement.textContent = aslLabels[maxIndex];
+                        } else {
+                            predictionLetterElement.textContent = "";
+                        }
+                        tf.dispose([inputTensor, prediction]);
+                    }
+                }
+            } else {
+                predictionLetterElement.textContent = "";
+            }
+            canvasCtx.restore();
+        }
+
+        const hands = new Hands({
+            locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+        });
+
+        hands.setOptions({
+            maxNumHands: 1,
+            modelComplexity: 1,
+            minDetectionConfidence: 0.5,
+            minTrackingConfidence: 0.5
+        });
+
+        hands.onResults(onResults);
+
+        const camera = new Camera(videoElement, {
+            onFrame: async () => {
+                await hands.send({ image: videoElement });
+            },
+            width: 640,
+            height: 480
+        });
+        camera.start();
+        loadModel();
+    </script>
+</body>
+</html>

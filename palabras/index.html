@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Predictor ASL - Palabras</title>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tensorflow/4.10.0/tf.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <canvas id="output_canvas" width="640" height="480"></canvas>
+        <div id="prediction_letter"></div>
+        <div id="predicted_word"></div>
+        <div class="controls">
+            <button id="clear_word_btn" class="clear">Borrar Palabra</button>
+        </div>
+    </div>
+
+    <video id="input_video" style="display: none;"></video>
+
+    <script src="script.js"></script>
+</body>
+</html>
