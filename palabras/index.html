@@ -9,20 +9,49 @@
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tensorflow/4.10.0/tf.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="container">
-        <canvas id="output_canvas" width="640" height="480"></canvas>
-        <div id="prediction_letter"></div>
-        <div id="predicted_word"></div>
-        <div class="controls">
-            <button id="clear_word_btn" class="clear">Borrar Palabra</button>
-        </div>
+    <div class="background">
+        <div class="gradient-blob"></div>
+        <div class="gradient-blob"></div>
+        <div class="gradient-blob"></div>
     </div>
+
+    <main>
+        <h1>Reconocimiento de lenguaje de señas en tiempo real</h1>
+        
+        
+        <div class="app-container">
+            <div class="camera-card card">
+                <div class="card-content">
+                    <canvas id="output_canvas" width="640" height="480"></canvas>
+                </div>
+            </div>
+            
+            <div class="prediction-card card">
+                <div class="card-content">
+                    <div class="prediction-section">
+                        <h3>Letra Detectada</h3>
+                        <div id="prediction_letter" class="letter-display"></div>
+                    </div>
+                    
+                    <div class="word-section">
+                        <h3>Palabra Formada</h3>
+                        <div id="predicted_word" class="word-display"></div>
+                    </div>
+                    
+                    <div class="controls">
+                        <button id="clear_word_btn" class="card-button clear-btn">
+                            Borrar Palabra
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
 
     <video id="input_video" style="display: none;"></video>
 
     <script src="script.js"></script>
-</body>
-</html>

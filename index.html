@@ -3,16 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Predictor ASL Automático</title>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
-    
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/tensorflow/4.10.0/tf.min.js"></script>
-    
+    <title>Señals - Comunicación Inclusiva</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        
+        :root {
+            --color-bg: #050505;
+            --color-text: #ffffff;
+            --color-primary: #ff3366;
+            --color-secondary: #3366ff;
+            --color-tertiary: #33ddff;
+            --color-accent: #ffcc00;
+            --card-radius: 16px;
+            --card-bg: rgba(255, 255, 255, 0.03);
+            --card-border: rgba(255, 255, 255, 0.1);
+            --card-shadow: 0 15px 30px -12px rgba(0, 0, 0, 0.5);
+            --transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -20,847 +29,605 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
-            padding: 20px;
-            background: linear-gradient(135deg, #1a2980 0%, #26d0ce 100%);
+            font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--color-bg);
+            color: var(--color-text);
             min-height: 100vh;
-            color: white;
             overflow-x: hidden;
+            line-height: 1.5;
         }
 
-        .main-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 20px;
+        .background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            overflow: hidden;
         }
 
-        header {
+        .gradient-blob {
+            position: absolute;
+            border-radius: 100%;
+            filter: blur(40px);
+            opacity: 0.3;
+            animation: float 20s infinite alternate ease-in-out;
+        }
+
+        .gradient-blob:nth-child(1) {
+            background: linear-gradient(
+                to right,
+                var(--color-primary),
+                var(--color-secondary)
+            );
+            width: 150vw;
+            height: 150vw;
+            top: -100%;
+            left: -25%;
+            animation-delay: 0s;
+        }
+
+        .gradient-blob:nth-child(2) {
+            background: linear-gradient(
+                to right,
+                var(--color-tertiary),
+                var(--color-secondary)
+            );
+            width: 150vw;
+            height: 150vw;
+            bottom: -100%;
+            right: -25%;
+            animation-delay: -5s;
+        }
+
+        .gradient-blob:nth-child(3) {
+            background: linear-gradient(
+                to right,
+                var(--color-accent),
+                var(--color-primary)
+            );
+            width: 100vw;
+            height: 100vw;
+            top: 30%;
+            left: -50%;
+            animation-delay: -10s;
+        }
+
+        @keyframes float {
+            0% {
+                transform: translate(0, 0) scale(1);
+            }
+            50% {
+                transform: translate(2%, 2%) scale(1.02);
+            }
+            100% {
+                transform: translate(-2%, -2%) scale(0.98);
+            }
+        }
+
+        main {
+            width: 100%;
+            padding: 2rem 1rem;
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .hero {
             text-align: center;
-            margin-bottom: 20px;
-            padding: 20px;
-            background: rgba(0, 0, 0, 0.2);
-            border-radius: 15px;
+            margin-bottom: 3rem;
+            max-width: 800px;
+            padding: 0 1rem;
         }
 
-        h1 {
-            font-size: 2.8rem;
-            background: linear-gradient(45deg, #00b894, #00cec9);
+        .logo {
+            font-size: 4.5rem;
+            font-weight: 800;
+            margin-bottom: 1rem;
+            line-height: 1.1;
+            background: linear-gradient(
+                to right,
+                var(--color-text),
+                rgba(255, 255, 255, 0.7)
+            );
             -webkit-background-clip: text;
+            background-clip: text;
             -webkit-text-fill-color: transparent;
-            margin-bottom: 10px;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            text-align: center;
         }
 
         .subtitle {
-            font-size: 1.2rem;
-            color: #e0f7fa;
-            max-width: 800px;
-            margin: 0 auto;
-            margin-bottom: 20px;
+            font-size: 1.25rem;
+            text-align: center;
+            margin-bottom: 3rem;
+            opacity: 0.8;
+            max-width: 600px;
         }
 
-        .learn-btn {
-            display: inline-block;
-            background: linear-gradient(45deg, #00b894, #00cec9);
-            color: white;
-            padding: 12px 25px;
-            border-radius: 25px;
-            text-decoration: none;
-            font-weight: bold;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(0, 206, 201, 0.4);
-        }
-
-        .learn-btn:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 6px 20px rgba(0, 206, 201, 0.6);
-        }
-
-        .content-container {
+        .cards-container {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+            perspective: 1000px;
+            max-width: 1200px;
+            width: 100%;
         }
 
-        @media (max-width: 900px) {
-            .content-container {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        .video-container {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            padding: 20px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        .card {
             position: relative;
-        }
-
-        .controls-container {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-
-        .control-panel {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border-radius: 15px;
-            padding: 20px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-        }
-
-        .camera-container {
-            position: relative;
-            width: 100%;
-            max-width: 720px;
-            margin: 0 auto;
-            border-radius: 15px;
-            overflow: hidden;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
-        }
-
-        #input_video {
-            width: 100%;
-            height: auto;
-            border-radius: 15px;
-            display: none; /* Oculta el elemento de video directamente, solo el canvas será visible */
-        }
-
-        #output_canvas {
-            width: 100%;
-            height: auto;
-            border-radius: 15px;
-            transform: scaleX(-1); /* Efecto espejo */
-            display: block;
-            background: #000;
-        }
-
-        .prediction-display {
-            text-align: center;
-            padding: 20px;
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 15px;
-            margin-top: 15px;
-            animation: fadeIn 0.5s ease;
-            border: 2px solid rgba(78, 205, 196, 0.5);
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .prediction-letter {
-            font-size: 64px;
-            font-weight: bold;
-            color: #ffdd59;
-            margin: 10px 0;
-            text-shadow: 0 0 15px rgba(255, 221, 89, 0.7);
-            animation: pulse 1.5s infinite;
-        }
-
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.1); }
-            100% { transform: scale(1); }
-        }
-
-        .confidence-display {
-            font-size: 18px;
-            margin: 10px 0;
-            color: #e0f7fa;
-        }
-
-        .confidence-bar {
-            width: 100%;
-            height: 20px;
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 10px;
-            overflow: hidden;
-            margin: 15px 0;
-            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
-        }
-
-        .confidence-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #4ecdc4, #44a08d);
-            border-radius: 10px;
-            transition: width 0.5s ease;
-            box-shadow: 0 0 15px rgba(78, 205, 196, 0.5);
-        }
-
-        .status {
-            background: rgba(0, 0, 0, 0.2);
-            border-radius: 10px;
-            padding: 15px;
-            margin: 10px 0;
-            font-family: monospace;
-            font-size: 13px;
-            max-height: 200px;
-            overflow-y: auto;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .status-item {
-            margin: 8px 0;
-            padding: 8px;
-            border-left: 3px solid #4ecdc4;
-            padding-left: 12px;
-            background: rgba(0, 0, 0, 0.1);
-            border-radius: 0 5px 5px 0;
-        }
-
-        .status-item.error {
-            border-left-color: #ff6b6b;
-            color: #ffcccb;
-        }
-
-        .status-item.success {
-            border-left-color: #00b894;
-            color: #90EE90;
-        }
-
-        .status-item.warning {
-            border-left-color: #feca57;
-            color: #ffeaa7;
-        }
-
-        .instructions {
-            margin-top: 20px;
-            padding: 15px;
-            background: rgba(0, 0, 0, 0.2);
-            border-radius: 10px;
-            font-size: 14px;
-            line-height: 1.6;
-        }
-
-        .instructions h3 {
-            margin-top: 0;
-            color: #4ecdc4;
-        }
-
-        .instructions ol {
-            padding-left: 20px;
-        }
-
-        .instructions li {
-            margin-bottom: 10px;
-        }
-
-        .footer {
-            grid-column: 1 / -1;
-            text-align: center;
-            margin-top: 20px;
-            font-size: 14px;
-            color: rgba(255, 255, 255, 0.7);
-        }
-
-        .asl-grid {
-            display: grid;
-            grid-template-columns: repeat(5, 1fr);
-            gap: 10px;
-            margin-top: 20px;
-        }
-
-        .asl-item {
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-            padding: 10px;
-            text-align: center;
-            transition: all 0.3s ease;
-        }
-
-        .asl-item:hover {
-            transform: translateY(-5px);
-            background: rgba(255, 255, 255, 0.2);
-        }
-
-        .asl-letter {
-            font-size: 24px;
-            font-weight: bold;
-            color: #ffdd59;
-            margin-bottom: 5px;
-        }
-
-        .asl-label {
-            font-size: 12px;
-            color: #e0f7fa;
-        }
-
-        .loading {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100%;
-            padding: 30px;
-            flex-direction: column;
-        }
-
-        .spinner {
-            width: 50px;
-            height: 50px;
-            border: 5px solid rgba(255, 255, 255, 0.3);
-            border-radius: 50%;
-            border-top-color: #00b894;
-            animation: spin 1s ease-in-out infinite;
-            margin: 0 auto 20px;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        .progress-bar {
-            width: 100%;
-            height: 10px;
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 5px;
-            overflow: hidden;
-            margin-top: 15px;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #00b894, #00cec9);
-            border-radius: 5px;
-            width: 0%;
-            transition: width 0.5s ease;
-        }
-
-        button {
-            background: linear-gradient(45deg, #ff6b6b, #ff9e7d);
-            color: white;
-            border: none;
-            padding: 14px 25px;
-            border-radius: 25px;
+            height: 320px;
+            border-radius: var(--card-radius);
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            box-shadow: var(--card-shadow);
+            transform-style: preserve-3d;
+            transition: var(--transition);
             cursor: pointer;
-            font-size: 16px;
-            font-weight: bold;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+
+        .card::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(
+                circle at var(--x, 50%) var(--y, 50%),
+                rgba(255, 255, 255, 0.1) 0%,
+                transparent 50%
+            );
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .card:hover::before {
+            opacity: 1;
+        }
+
+        .card-content {
+            position: relative;
+            height: 100%;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            transform-style: preserve-3d;
+            transition: transform 0.5s ease;
+        }
+
+        .card h2 {
+            font-size: 1.5rem;
+            margin-bottom: 0.75rem;
+            font-weight: 700;
+            transform: translateZ(20px);
+            background: linear-gradient(
+                to right,
+                var(--color-text),
+                rgba(255, 255, 255, 0.8)
+            );
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .card p {
+            margin-bottom: 1.5rem;
+            font-size: 0.9rem;
+            opacity: 0.8;
+            transform: translateZ(15px);
+        }
+
+        .card-footer {
+            margin-top: auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transform: translateZ(15px);
+        }
+
+        .card-button {
+            padding: 0.6rem 1.2rem;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 100px;
+            color: var(--color-text);
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
             transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
-            margin: 10px 0;
-            width: 100%;
-            letter-spacing: 1px;
+            backdrop-filter: blur(5px);
+            position: relative;
+            overflow: hidden;
         }
 
-        button:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 6px 20px rgba(255, 107, 107, 0.5);
-            background: linear-gradient(45deg, #ff9e7d, #ff6b6b);
+        .card-button:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
         }
 
-        button:disabled {
-            background: #666;
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
+        .card-icon {
+            font-size: 1.25rem;
             opacity: 0.7;
+            transition: transform 0.3s ease;
         }
 
-        .model-info {
-            background: rgba(0, 0, 0, 0.2);
-            border-radius: 10px;
-            padding: 15px;
-            margin-top: 10px;
-            font-size: 14px;
+        .card:hover .card-icon {
+            transform: translateX(5px);
+            opacity: 1;
         }
 
-        @media (max-width: 768px) {
-            h1 {
-                font-size: 2rem;
-            }
-            
-            .prediction-letter {
-                font-size: 48px;
-            }
-            
-            .asl-grid {
-                grid-template-columns: repeat(3, 1fr);
+        .ripple {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            transform: scale(0);
+            animation: ripple 0.5s linear;
+            pointer-events: none;
+        }
+
+        @keyframes ripple {
+            to {
+                transform: scale(2);
+                opacity: 0;
             }
         }
 
-        @media (max-width: 480px) {
-            body {
-                padding: 10px;
+        .card-icon svg {
+            width: 24px;
+            height: 24px;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .card-1 {
+            background: linear-gradient(
+                135deg,
+                rgba(255, 51, 102, 0.05),
+                rgba(51, 102, 255, 0.05)
+            );
+        }
+
+        .card-2 {
+            background: linear-gradient(
+                135deg,
+                rgba(51, 221, 255, 0.05),
+                rgba(255, 204, 0, 0.05)
+            );
+        }
+
+        footer {
+            text-align: center;
+            padding: 2rem 1rem;
+            margin-top: 2rem;
+            font-size: 0.9rem;
+            opacity: 0.6;
+        }
+
+        @media (min-width: 640px) {
+            main {
+                padding: 5vh 2rem;
             }
-            
-            .prediction-letter {
-                font-size: 36px;
+
+            .logo {
+                font-size: 5rem;
+                margin-bottom: 1rem;
             }
-            
-            .asl-grid {
+
+            .subtitle {
+                font-size: 1.4rem;
+                margin-bottom: 4rem;
+            }
+
+            .card {
+                height: 350px;
+            }
+
+            .card-content {
+                padding: 1.75rem;
+            }
+
+            .card h2 {
+                font-size: 1.6rem;
+            }
+
+            .card p {
+                font-size: 1rem;
+            }
+
+            .card-button {
+                padding: 0.7rem 1.4rem;
+                font-size: 0.9rem;
+            }
+
+            .gradient-blob {
+                filter: blur(50px);
+                opacity: 0.35;
+            }
+        }
+
+        @media (min-width: 768px) {
+            .cards-container {
                 grid-template-columns: repeat(2, 1fr);
+            }
+
+            .gradient-blob {
+                filter: blur(60px);
+                opacity: 0.4;
+            }
+
+            .gradient-blob:nth-child(1) {
+                width: 120vw;
+                height: 120vw;
+                top: -70%;
+                left: -20%;
+            }
+
+            .gradient-blob:nth-child(2) {
+                width: 120vw;
+                height: 120vw;
+                bottom: -70%;
+                right: -20%;
+            }
+
+            .gradient-blob:nth-child(3) {
+                width: 80vw;
+                height: 80vw;
+                top: 30%;
+                left: -30%;
+            }
+
+            .card-content {
+                padding: 2rem;
+            }
+
+            .card h2 {
+                transform: translateZ(25px);
+            }
+
+            .card p {
+                transform: translateZ(20px);
+            }
+        }
+
+        @media (min-width: 1024px) {
+            main {
+                max-width: 1200px;
+                margin: 0 auto;
+                padding: 10vh 2rem;
+            }
+
+            .logo {
+                font-size: 6rem;
+            }
+
+            .subtitle {
+                font-size: 1.5rem;
+            }
+
+            .card {
+                height: 400px;
+                border-radius: 24px;
+            }
+
+            .gradient-blob {
+                filter: blur(80px);
+                opacity: 0.5;
+            }
+
+            .gradient-blob:nth-child(1) {
+                width: 60vw;
+                height: 60vw;
+                top: -20%;
+                left: -10%;
+            }
+
+            .gradient-blob:nth-child(2) {
+                width: 60vw;
+                height: 60vw;
+                bottom: -30%;
+                right: -10%;
+            }
+
+            .gradient-blob:nth-child(3) {
+                width: 40vw;
+                height: 40vw;
+                top: 40%;
+                left: 30%;
+            }
+
+            .card h2 {
+                font-size: 1.75rem;
+                transform: translateZ(30px);
+            }
+
+            .card p {
+                transform: translateZ(25px);
+            }
+
+            .card-footer {
+                transform: translateZ(20px);
             }
         }
     </style>
 </head>
 <body>
-    <div class="main-container">
-        <header>
-            <h1>🤖 Predictor ASL Automático</h1>
-            <p class="subtitle">Reconocimiento de lenguaje de señas con carga automática de modelo</p>
-            <a href="aprender/index.html" class="learn-btn">Aprender Señas</a>
-        </header>
-        
-        <div class="content-container">
-            <div class="video-container">
-                <div class="camera-container">
-                    <video id="input_video" autoplay playsinline></video>
-                    <canvas id="output_canvas" width="720" height="480"></canvas>
-                </div>
-                
-                <div class="prediction-display" id="predictionDisplay" style="display: none;">
-                    <div class="prediction-letter" id="predictionLetter">--</div>
-                    <div class="confidence-display">
-                        Confianza: <span id="confidenceValue">--</span>%
+    <div class="background">
+        <div class="gradient-blob"></div>
+        <div class="gradient-blob"></div>
+        <div class="gradient-blob"></div>
+    </div>
+
+    <main>
+        <div class="hero">
+            <h1 class="logo">Senials</h1>
+            <p class="subtitle">Comunicación inclusiva a través de la visión por computadora</p>
+        </div>
+
+        <div class="cards-container">
+            <div class="card card-1" data-rotation-factor="2" data-href="palabras/index.html">
+                <div class="card-content">
+                    <h2>Reconocimiento en tiempo real</h2>
+                    <p>Utiliza tu cámara para reconocer el lenguaje de señas instantáneamente. Nuestra tecnología avanzada detecta y traduce tus gestos en palabras en tiempo real.</p>
+                    <div class="card-footer">
+                        <button class="card-button">Empezar</button>
+                        <div class="card-icon">
+                            <svg viewBox="0 0 24 24">
+                                <path d="M5 12H19M19 12L12 5M19 12L12 19"/>
+                            </svg>
+                        </div>
                     </div>
-                    <div class="confidence-bar">
-                        <div class="confidence-fill" id="confidenceFill" style="width: 0%"></div>
-                    </div>
-                </div>
-                
-                <div class="instructions">
-                    <h3>📝 Instrucciones de Uso</h3>
-                    <ol>
-                        <li>Permite el acceso a la cámara cuando se solicite</li>
-                        <li>Espera a que el modelo ASL se cargue automáticamente</li>
-                        <li>Muestra tu mano a la cámara para reconocer gestos</li>
-                        <li>La letra reconocida aparecerá con su nivel de confianza</li>
-                        <li>Intenta mantener la mano estable para mejores resultados</li>
-                    </ol>
                 </div>
             </div>
-            
-            <div class="controls-container">
-                <div class="control-panel">
-                    <h3>🤖 Estado del Modelo</h3>
-                    <div class="loading" id="modelLoading">
-                        <div class="spinner"></div>
-                        <p id="loadingText">Cargando modelo ASL...</p>
-                        <div class="progress-bar">
-                            <div class="progress-fill" id="modelProgress"></div>
-                        </div>
-                    </div>
-                    <div class="model-info" id="modelInfo" style="display: none;">
-                        <p><strong>Modelo:</strong> ASL Recognition v1.0</p>
-                        <p><strong>Archivos cargados:</strong> asl-model-tfjs.json + asl-model-tfjs.weights.bin</p>
-                        <p><strong>Precisión estimada:</strong> 94.2%</p>
-                    </div>
-                    <div class="status" id="modelStatus">
-                        <div class="status-item">Inicializando sistema...</div>
-                    </div>
-                </div>
-                
-                <div class="control-panel">
-                    <h3>📊 Predicción</h3>
-                    <button id="togglePredictionBtn" disabled>Activar Predicción</button>
-                    <div class="status" id="predictionStatus">
-                        <div class="status-item">Esperando que el modelo esté listo...</div>
-                    </div>
-                </div>
 
-                <div class="control-panel">
-                    <h3>📹 Estado de Cámara</h3>
-                    <div class="status" id="cameraStatus">
-                        <div class="status-item">Inicializando cámara...</div>
-                    </div>
-                </div>
-                
-                <div class="control-panel">
-                    <h3>✋ Alfabeto ASL</h3>
-                    <div class="asl-grid">
-                        <div class="asl-item">
-                            <div class="asl-letter">A</div>
-                            <div class="asl-label">Puño cerrado</div>
-                        </div>
-                        <div class="asl-item">
-                            <div class="asl-letter">B</div>
-                            <div class="asl-label">Mano plana</div>
-                        </div>
-                        <div class="asl-item">
-                            <div class="asl-letter">C</div>
-                            <div class="asl-label">Forma de C</div>
-                        </div>
-                        <div class="asl-item">
-                            <div class="asl-letter">D</div>
-                            <div class="asl-label">Señalar arriba</div>
-                        </div>
-                        <div class="asl-item">
-                            <div class="asl-letter">E</div>
-                            <div class="asl-label">Mano cerrada</div>
-                        </div>
-                        <div class="asl-item">
-                            <div class="asl-letter">F</div>
-                            <div class="asl-label">OK con pulgar</div>
-                        </div>
-                        <div class="asl-item">
-                            <div class="asl-letter">G</div>
-                            <div class="asl-label">Señalar lateral</div>
-                        </div>
-                        <div class="asl-item">
-                            <div class="asl-letter">H</div>
-                            <div class="asl-label">Dos dedos juntos</div>
-                        </div>
-                        <div class="asl-item">
-                            <div class="asl-letter">I</div>
-                            <div class="asl-label">Meñique arriba</div>
-                        </div>
-                        <div class="asl-item">
-                            <div class="asl-letter">J</div>
-                            <div class="asl-label">Movimiento J</div>
-                        </div>
-                        <div class="asl-item">
-                            <div class="asl-letter">K</div>
-                            <div class="asl-label">Índice y medio</div>
-                        </div>
-                        <div class="asl-item">
-                            <div class="asl-letter">L</div>
-                            <div class="asl-label">Forma de L</div>
-                        </div>
-                        <div class="asl-item">
-                            <div class="asl-letter">M</div>
-                            <div class="asl-label">Tres dedos abajo</div>
-                        </div>
-                        <div class="asl-item">
-                            <div class="asl-letter">N</div>
-                            <div class="asl-label">Dos dedos abajo</div>
-                        </div>
-                        <div class="asl-item">
-                            <div class="asl-letter">O</div>
-                            <div class="asl-label">Forma de O</div>
+            <div class="card card-2" data-rotation-factor="2" data-href="aprender/index.html">
+                <div class="card-content">
+                    <h2>Aprende lenguaje de señas</h2>
+                    <p>Explora nuestro catálogo interactivo de señas. Con tutoriales paso a paso, aprenderás a comunicarte de forma efectiva con la comunidad sorda.</p>
+                    <div class="card-footer">
+                        <button class="card-button">Explorar</button>
+                        <div class="card-icon">
+                            <svg viewBox="0 0 24 24">
+                                <path d="M5 12H19M19 12L12 5M19 12L12 19"/>
+                            </svg>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
-    
-    <div class="footer">
-        Sistema de reconocimiento ASL | Modelo: asl-model-tfjs | Desarrollado con MediaPipe y TensorFlow.js
-    </div>
+    </main>
+
+    <footer>
+        <p>Senials &copy; 2025 - Algoritmos y estructuras de datos</p>
+    </footer>
 
     <script>
-        // Variables globales
-        let model = null;
-        let modelLoaded = false;
-        let predictionActive = false;
-        let lastPredictionTime = 0;
-        let cameraActive = false;
+        document.addEventListener("DOMContentLoaded", () => {
+            const cards = document.querySelectorAll(".card");
+            const isTouchDevice = "ontouchstart" in window || navigator.maxTouchPoints > 0;
 
-        // Mapeo de etiquetas ASL (ampliado para incluir todas las letras si es necesario)
-        const aslLabels = [
-            'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M',
-            'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'
-        ];
+            // Agregar animación flotante a las tarjetas
+            cards.forEach((card) => {
+                const content = card.querySelector(".card-content");
+                const rotationFactor = parseFloat(card.getAttribute("data-rotation-factor")) || 2;
+                const href = card.getAttribute("data-href");
 
-        // Referencias a elementos
-        const videoElement = document.getElementById('input_video');
-        const canvasElement = document.getElementById('output_canvas');
-        const canvasCtx = canvasElement.getContext('2d');
-        const togglePredictionBtn = document.getElementById('togglePredictionBtn');
-        const predictionDisplay = document.getElementById('predictionDisplay');
-        const modelStatusElement = document.getElementById('modelStatus');
-        const modelLoadingElement = document.getElementById('modelLoading');
-        const modelInfoElement = document.getElementById('modelInfo');
-        const loadingTextElement = document.getElementById('loadingText');
-        const modelProgressElement = document.getElementById('modelProgress');
-        const cameraStatusElement = document.getElementById('cameraStatus');
-        const predictionStatusElement = document.getElementById('predictionStatus');
-
-        // Obtener utilidades de dibujo de MediaPipe
-        const { drawConnectors, drawLandmarks } = window;
-        const HAND_CONNECTIONS = window.HAND_CONNECTIONS;
-
-        // Funciones de utilidad para el log de estado
-        function addStatus(element, message, type = 'info') {
-            const statusItem = document.createElement('div');
-            statusItem.className = `status-item ${type}`;
-            statusItem.innerHTML = `[${new Date().toLocaleTimeString()}] ${message}`;
-            element.appendChild(statusItem);
-            element.scrollTop = element.scrollHeight; // Auto-scroll
-        }
-
-        function updatePredictionDisplay(letter, confidence) {
-            document.getElementById('predictionLetter').textContent = letter;
-            document.getElementById('confidenceValue').textContent = confidence.toFixed(1);
-            document.getElementById('confidenceFill').style.width = `${confidence}%`;
-            predictionDisplay.style.display = 'block';
-        }
-
-        // Función para normalizar landmarks (CRÍTICO: debe ser igual al entrenamiento)
-        function normalizeLandmarks(landmarks) {
-            if (!landmarks || landmarks.length === 0) return [];
-            
-            const points = landmarks.map(landmark => ({
-                x: landmark.x,
-                y: landmark.y,
-                z: landmark.z
-            }));
-            
-            const wrist = points[0]; // La muñeca es el punto de referencia (índice 0)
-            
-            const relativePoints = points.map(point => ({
-                x: point.x - wrist.x,
-                y: point.y - wrist.y,
-                z: point.z - wrist.z
-            }));
-            
-            let maxDistance = 0;
-            for (let i = 1; i < relativePoints.length; i++) {
-                const dist = Math.sqrt(
-                    relativePoints[i].x ** 2 + 
-                    relativePoints[i].y ** 2 + 
-                    relativePoints[i].z ** 2
-                );
-                if (dist > maxDistance) maxDistance = dist;
-            }
-            
-            // Si la mano es muy pequeña o si la distancia es 0 (ej. todos los puntos coinciden)
-            // entonces evitar la división por cero y devolver los puntos relativos sin normalizar por distancia.
-            if (maxDistance > 0) {
-                return relativePoints.map(point => ({
-                    x: point.x / maxDistance,
-                    y: point.y / maxDistance,
-                    z: point.z / maxDistance
-                }));
-            }
-            
-            return relativePoints; // Devolver puntos relativos sin normalización de escala si maxDistance es cero
-        }
-
-        // Cargar el modelo automáticamente con nombres corregidos
-        async function loadModelAutomatically() {
-            try {
-                addStatus(modelStatusElement, 'Cargando modelo ASL...');
-                
-                loadingTextElement.textContent = 'Cargando modelo JSON...';
-                modelProgressElement.style.width = '30%';
-                
-                model = await tf.loadLayersModel('entrenamiento/Web2.0/asl-model-tfjs.json');
-                
-                loadingTextElement.textContent = 'Cargando pesos binarios...';
-                modelProgressElement.style.width = '70%';
-                
-                await new Promise(resolve => setTimeout(resolve, 1500)); 
-                
-                modelProgressElement.style.width = '100%';
-                loadingTextElement.textContent = 'Modelo cargado exitosamente!';
-                await new Promise(resolve => setTimeout(resolve, 500));
-                
-                modelLoaded = true;
-                togglePredictionBtn.disabled = false;
-                modelLoadingElement.style.display = 'none';
-                modelInfoElement.style.display = 'block';
-                
-                addStatus(modelStatusElement, 'Modelo ASL cargado exitosamente', 'success');
-                addStatus(predictionStatusElement, 'Modelo listo. Activa la predicción para comenzar.', 'success');
-                
-                togglePredictionBtn.textContent = 'Activar Predicción';
-                togglePredictionBtn.style.background = 'linear-gradient(45deg, #ff6b6b, #ff9e7d)';
-            } catch (error) {
-                addStatus(modelStatusElement, `Error cargando modelo: ${error.message}`, 'error');
-                loadingTextElement.textContent = 'Error cargando el modelo';
-                loadingTextElement.style.color = '#ff6b6b';
-                addStatus(modelStatusElement, 'Asegúrate de tener los archivos en la ruta correcta: entrenamiento/Web2.0/asl-model-tfjs.json y asl-model-tfjs.weights.bin', 'warning');
-                console.error('Error al cargar el modelo:', error);
-            }
-        }
-
-        // Toggle predicción
-        togglePredictionBtn.addEventListener('click', () => {
-            predictionActive = !predictionActive;
-            togglePredictionBtn.textContent = predictionActive ? 'Desactivar Predicción' : 'Activar Predicción';
-            togglePredictionBtn.style.background = predictionActive 
-                ? 'linear-gradient(45deg, #ff9e7d, #ff6b6b)' 
-                : 'linear-gradient(45deg, #ff6b6b, #ff9e7d)';
-            
-            if (!predictionActive) {
-                predictionDisplay.style.display = 'none';
-            }
-            
-            addStatus(predictionStatusElement, `Predicción ${predictionActive ? 'activada' : 'desactivada'}`, 'info');
-        });
-
-        // Función para hacer predicción
-        async function makePrediction(landmarks) {
-            if (!modelLoaded || !predictionActive) return;
-
-            const now = Date.now();
-            if (now - lastPredictionTime < 200) return; // Limita la frecuencia de predicción
-            lastPredictionTime = now;
-
-            try {
-                const normalizedLandmarks = normalizeLandmarks(landmarks);
-                
-                const landmarkData = [];
-                normalizedLandmarks.forEach(landmark => {
-                    landmarkData.push(landmark.x, landmark.y, landmark.z);
-                });
-
-                // Verifica que los datos de entrada coincidan con la expectativa del modelo (21 * 3 = 63 características)
-                if (landmarkData.length !== 63) {
-                     if (predictionDisplay.style.display === 'block') {
-                        predictionDisplay.style.display = 'none';
-                    }
-                    return; 
-                }
-
-                const inputTensor = tf.tensor2d([landmarkData]);
-                const prediction = model.predict(inputTensor);
-                const predictionData = await prediction.data();
-
-                const maxIndex = predictionData.indexOf(Math.max(...predictionData));
-                const confidence = predictionData[maxIndex] * 100;
-                const predictedLabel = aslLabels[maxIndex] || `Clase ${maxIndex}`;
-
-                if (confidence > 60) { // Umbral de confianza ajustable
-                    updatePredictionDisplay(predictedLabel, confidence);
-                } else if (predictionDisplay.style.display === 'block') {
-                    predictionDisplay.style.display = 'none';
-                }
-
-                tf.dispose([inputTensor, prediction]);
-            } catch (error) {
-                console.error('Error durante la predicción:', error);
-                // No saturar el log de estado con errores de predicción si la mano no es detectada consistentemente
-            }
-        }
-
-        // Configurar MediaPipe Hands
-        const hands = new Hands({
-            locateFile: (file) => {
-                return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
-            }
-        });
-
-        hands.setOptions({
-            selfieMode: true,
-            maxNumHands: 1,
-            modelComplexity: 1,
-            minDetectionConfidence: 0.7,
-            minTrackingConfidence: 0.5
-        });
-
-        // Procesar resultados de MediaPipe
-        hands.onResults(async (results) => {
-            canvasCtx.save();
-            canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
-            if (results.image) {
-                canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
-            }
-
-            if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-                const landmarks = results.multiHandLandmarks[0];
-                
-                drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS, {
-                    color: '#00FF00', 
-                    lineWidth: 3
-                });
-                drawLandmarks(canvasCtx, landmarks, {
-                    color: '#FF0000', 
-                    lineWidth: 2,
-                    radius: 4
-                });
-
-                if (modelLoaded && predictionActive) {
-                    await makePrediction(landmarks);
-                }
-                
-                // Muestra un estado más informativo sobre la detección de mano
-                if (cameraActive) {
-                    addStatus(cameraStatusElement, `Mano detectada. Procesando ${landmarks.length} puntos...`);
-                }
-            } else {
-                if (predictionActive) {
-                    predictionDisplay.style.display = 'none';
-                }
-                if (cameraActive) {
-                    addStatus(cameraStatusElement, 'Cámara activa. Muestra tu mano para detectar gestos.');
-                }
-            }
-
-            canvasCtx.restore();
-        });
-
-        // --- INICIO DE MODIFICACIÓN CRÍTICA PARA LA CÁMARA ---
-        async function initCamera() {
-            addStatus(cameraStatusElement, 'Intentando iniciar la cámara...');
-            togglePredictionBtn.disabled = true; // Deshabilitar hasta que la cámara y el modelo estén listos
-            togglePredictionBtn.textContent = 'Cámara no disponible';
-
-            try {
-                // Solicitar la cámara explícitamente primero con getUserMedia
-                const stream = await navigator.mediaDevices.getUserMedia({
-                    video: {
-                        width: { ideal: 720 },
-                        height: { ideal: 480 },
-                        facingMode: "user" // 'user' para cámara frontal, 'environment' para trasera (móvil)
+                // Configurar evento de clic para la tarjeta
+                card.addEventListener("click", () => {
+                    if (href) {
+                        window.location.href = href;
                     }
                 });
 
-                videoElement.srcObject = stream;
-                await videoElement.play(); // Asegurarse de que el video empiece a reproducirse
+                if (!isTouchDevice) {
+                    card.addEventListener("mousemove", (e) => {
+                        const rect = card.getBoundingClientRect();
+                        const x = e.clientX - rect.left;
+                        const y = e.clientY - rect.top;
 
-                // Ahora que el videoElement tiene el stream y está reproduciéndose, inicializar MediaPipe Camera
-                const camera = new window.Camera(videoElement, {
-                    onFrame: async () => {
-                        // Solo enviar frames si el video está listo y la cámara está "activa" lógicamente
-                        if (videoElement.readyState >= 2) {
-                            await hands.send({image: videoElement});
+                        const centerX = rect.width / 2;
+                        const centerY = rect.height / 2;
+                        const rotateY = (rotationFactor * (x - centerX)) / centerX;
+                        const rotateX = (-rotationFactor * (y - centerY)) / centerY;
+
+                        content.style.transform = `
+                            rotateX(${rotateX}deg) 
+                            rotateY(${rotateY}deg)
+                        `;
+
+                        card.style.setProperty("--x", `${(x / rect.width) * 100}%`);
+                        card.style.setProperty("--y", `${(y / rect.height) * 100}%`);
+                    });
+
+                    card.addEventListener("mouseleave", () => {
+                        content.style.transform = "rotateX(0) rotateY(0)";
+                        content.style.transition = "transform 0.5s ease";
+                        setTimeout(() => {
+                            content.style.transition = "";
+                        }, 500);
+                    });
+                }
+
+                const randomDelay = Math.random() * 2;
+                card.style.animation = `cardFloat 4s infinite alternate ease-in-out ${randomDelay}s`;
+            });
+
+            // Crear animación para flotar tarjetas
+            const style = document.createElement("style");
+            style.textContent = `
+                @keyframes cardFloat {
+                    0% {
+                        transform: translateY(0);
+                    }
+                    100% {
+                        transform: translateY(-5px);
+                    }
+                }
+                
+                @media (min-width: 768px) {
+                    @keyframes cardFloat {
+                        0% {
+                            transform: translateY(0);
                         }
-                    },
-                    width: 720,
-                    height: 480
+                        100% {
+                            transform: translateY(-8px);
+                        }
+                    }
+                }
+                
+                @media (min-width: 1024px) {
+                    @keyframes cardFloat {
+                        0% {
+                            transform: translateY(0);
+                        }
+                        100% {
+                            transform: translateY(-10px);
+                        }
+                    }
+                }
+            `;
+            document.head.appendChild(style);
+
+            // Efecto ripple para botones
+            const buttons = document.querySelectorAll(".card-button");
+            buttons.forEach((button) => {
+                button.addEventListener("click", (e) => {
+                    e.stopPropagation();
+                    
+                    const ripple = document.createElement("span");
+                    ripple.classList.add("ripple");
+                    button.appendChild(ripple);
+
+                    const rect = button.getBoundingClientRect();
+                    const size = Math.max(rect.width, rect.height) * 2;
+
+                    ripple.style.width = ripple.style.height = `${size}px`;
+                    ripple.style.left = `${e.clientX - rect.left - size / 2}px`;
+                    ripple.style.top = `${e.clientY - rect.top - size / 2}px`;
+
+                    ripple.classList.add("active");
+
+                    setTimeout(() => {
+                        ripple.remove();
+                    }, 500);
+                    
+                    // Redirigir al hacer clic en el botón
+                    const card = button.closest('.card');
+                    if (card) {
+                        const href = card.getAttribute('data-href');
+                        if (href) {
+                            setTimeout(() => {
+                                window.location.href = href;
+                            }, 300);
+                        }
+                    }
                 });
-
-                await camera.start(); // Iniciar la utilidad de cámara de MediaPipe
-
-                cameraActive = true;
-                addStatus(cameraStatusElement, 'Cámara iniciada correctamente y lista para detección.', 'success');
-                // Si el modelo ya está cargado, habilitar el botón de predicción
-                if (modelLoaded) {
-                    togglePredictionBtn.disabled = false;
-                    togglePredictionBtn.textContent = 'Activar Predicción';
-                    togglePredictionBtn.style.background = 'linear-gradient(45deg, #ff6b6b, #ff9e7d)';
-                }
-            } catch (error) {
-                cameraActive = false;
-                let errorMessage = `Error iniciando cámara: ${error.name || error.message}.`;
-                
-                if (error.name === 'NotFoundError') {
-                    errorMessage += ' No se encontró ningún dispositivo de cámara. Verifica las conexiones y la configuración del sistema.';
-                } else if (error.name === 'NotAllowedError' || error.name === 'SecurityError') {
-                    errorMessage += ' Acceso a la cámara denegado. Por favor, permite el acceso a la cámara en la configuración de tu navegador y sistema operativo.';
-                } else if (error.name === 'NotReadableError' || error.name === 'OverconstrainedError') {
-                    errorMessage += ' La cámara está en uso o hay un problema con las restricciones de video. Intenta cerrar otras aplicaciones o cambiar la resolución.';
-                }
-                
-                addStatus(cameraStatusElement, errorMessage, 'error');
-                console.error('Error al iniciar la cámara:', error);
-                
-                togglePredictionBtn.disabled = true;
-                togglePredictionBtn.textContent = 'Cámara no disponible';
-            }
-        }
-        // --- FIN DE MODIFICACIÓN CRÍTICA PARA LA CÁMARA ---
-
- 
-        // Inicialización prueba
-        window.addEventListener('DOMContentLoaded', async () => {
-            addStatus(modelStatusElement, 'Inicializando sistema...');
-            addStatus(predictionStatusElement, 'Cargando modelo ASL automáticamente');
-            addStatus(cameraStatusElement, 'Preparando inicio de cámara...');
-            
-            // Iniciar carga del modelo automáticamente
-            await loadModelAutomatically(); // Asegurarse de que el modelo se cargue primero (o al menos se intente)
-            
-            // Luego, intentar iniciar la cámara
-            await initCamera();
+            });
         });
     </script>
 </body>

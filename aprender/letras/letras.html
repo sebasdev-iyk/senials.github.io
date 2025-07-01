@@ -1,0 +1,899 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aprendizaje de Lengua de Señas</title>
+    <!-- Incluir Material Icons -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tensorflow/4.10.0/tf.min.js"></script>
+    <style>
+        :root {
+            --color-bg: #050505;
+            --color-text: #ffffff;
+            --color-primary: #ff3366;
+            --color-secondary: #3366ff;
+            --color-tertiary: #33ddff;
+            --color-accent: #ffcc00;
+            --color-success: #00b894;
+            --color-error: #ff6b6b;
+            --card-radius: 16px;
+            --card-bg: rgba(255, 255, 255, 0.03);
+            --card-border: rgba(255, 255, 255, 0.1);
+            --card-shadow: 0 15px 30px -12px rgba(0, 0, 0, 0.5);
+            --transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--color-bg);
+            color: var(--color-text);
+            height: 100vh;
+            overflow: hidden;
+            line-height: 1.5;
+        }
+
+        .background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            overflow: hidden;
+        }
+
+        .gradient-blob {
+            position: absolute;
+            border-radius: 100%;
+            filter: blur(60px);
+            opacity: 0.4;
+            animation: float 20s infinite alternate ease-in-out;
+        }
+
+        .gradient-blob:nth-child(1) {
+            background: linear-gradient(to right, var(--color-primary), var(--color-secondary));
+            width: 80vw;
+            height: 80vw;
+            top: -40%;
+            left: -20%;
+            animation-delay: 0s;
+        }
+
+        .gradient-blob:nth-child(2) {
+            background: linear-gradient(to right, var(--color-tertiary), var(--color-secondary));
+            width: 80vw;
+            height: 80vw;
+            bottom: -40%;
+            right: -20%;
+            animation-delay: -5s;
+        }
+
+        .gradient-blob:nth-child(3) {
+            background: linear-gradient(to right, var(--color-accent), var(--color-primary));
+            width: 60vw;
+            height: 60vw;
+            top: 20%;
+            left: 20%;
+            animation-delay: -10s;
+        }
+
+        @keyframes float {
+            0% { transform: translate(0, 0) scale(1); }
+            50% { transform: translate(1%, 1%) scale(1.01); }
+            100% { transform: translate(-1%, -1%) scale(0.99); }
+        }
+
+        @keyframes letterChange {
+            0% { transform: scale(1) rotate(0deg); opacity: 1; }
+            50% { transform: scale(1.1) rotate(5deg); opacity: 0.8; }
+            100% { transform: scale(1) rotate(0deg); opacity: 1; }
+        }
+
+        /* Botón de retroceso */
+        .back-button {
+            position: fixed;
+            top: 1.5rem;
+            left: 1.5rem;
+            z-index: 20;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(15px);
+            border: 1px solid var(--card-border);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: var(--transition);
+            color: var(--color-text);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+
+        .back-button:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.4);
+        }
+
+        .back-button .material-icons {
+            font-size: 28px;
+        }
+
+        .main-container {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 1rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        header {
+            text-align: center;
+            padding: 1rem 0;
+            flex-shrink: 0;
+            margin-top: 20px;
+        }
+
+        .letter-display {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .letter-display h1 {
+            font-size: 3rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-primary) 50%, var(--color-secondary) 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 30px rgba(255, 51, 102, 0.3);
+            transition: var(--transition);
+        }
+
+        .letter-counter {
+            font-size: 1rem;
+            opacity: 0.7;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            border: 1px solid var(--card-border);
+        }
+
+        .subtitle {
+            font-size: 0.9rem;
+            opacity: 0.8;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .content-container {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 1.5rem;
+            flex: 1;
+            min-height: 0;
+            perspective: 1000px;
+        }
+
+        .video-container, .controls-container {
+            background: var(--card-bg);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border-radius: var(--card-radius);
+            border: 1px solid var(--card-border);
+            box-shadow: var(--card-shadow);
+            padding: 1.2rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .video-container::before, .controls-container::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.05) 0%, transparent 50%);
+            border-radius: var(--card-radius);
+            opacity: 0.5;
+        }
+
+        .camera-and-reference {
+            display: flex;
+            gap: 1rem;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+            height: calc(100% - 80px);
+        }
+
+        .camera-container {
+            position: relative;
+            flex: 1;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+            border: 3px solid var(--color-error);
+            transition: var(--transition);
+            height: 100%;
+        }
+
+        .camera-container.hand-detected {
+            border-color: var(--color-success);
+            box-shadow: 0 15px 50px rgba(0, 184, 148, 0.3);
+        }
+
+        .camera-container.no-hand {
+            border-color: var(--color-error);
+            box-shadow: 0 15px 50px rgba(255, 107, 107, 0.3);
+        }
+
+        .reference-image {
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .hand-svg {
+            width: 180px;
+            height: 180px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 1rem;
+            border: 1px solid var(--card-border);
+            box-shadow: var(--card-shadow);
+            backdrop-filter: blur(10px);
+            transition: var(--transition);
+            object-fit: contain;
+            object-position: center;
+        }
+
+        .hand-svg:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.4);
+        }
+
+        .reference-label {
+            font-size: 0.8rem;
+            opacity: 0.7;
+            text-align: center;
+            max-width: 180px;
+        }
+
+        #output_canvas {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            background: #000;
+            transform: scaleX(-1);
+            transition: var(--transition);
+            border-radius: 8px;
+        }
+
+        .prediction-display {
+            text-align: center;
+            padding: 1rem;
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 12px;
+            border: 1px solid var(--card-border);
+            backdrop-filter: blur(10px);
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.95rem;
+        }
+
+        .controls-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .controls-container h3 {
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+            background: linear-gradient(to right, var(--color-text), rgba(255, 255, 255, 0.8));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .status {
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            text-align: center;
+            font-size: 0.95rem;
+            font-weight: 600;
+            border: 1px solid var(--card-border);
+            backdrop-filter: blur(10px);
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .status-item {
+            padding: 0.6rem;
+            border-radius: 8px;
+            transition: var(--transition);
+        }
+
+        .status-item.error {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            color: white;
+            box-shadow: 0 5px 15px rgba(255, 107, 107, 0.3);
+        }
+
+        .status-item.success {
+            background: linear-gradient(135deg, #00b894, #00a085);
+            color: white;
+            box-shadow: 0 5px 15px rgba(0, 184, 148, 0.3);
+        }
+
+        .status-item.warning {
+            background: linear-gradient(135deg, #feca57, #ff9ff3);
+            color: #333;
+            box-shadow: 0 5px 15px rgba(254, 202, 87, 0.3);
+        }
+
+        .status-item.info {
+            background: linear-gradient(135deg, var(--color-tertiary), var(--color-secondary));
+            color: white;
+            box-shadow: 0 5px 15px rgba(51, 221, 255, 0.3);
+        }
+
+        .navigation-container {
+            display: flex;
+            justify-content: space-between;
+            gap: 0.8rem;
+            margin-bottom: 1rem;
+        }
+
+        .nav-btn {
+            flex: 1;
+            padding: 0.7rem 1rem;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--card-border);
+            border-radius: 50px;
+            color: var(--color-text);
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: var(--transition);
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .nav-btn .material-icons {
+            font-size: 20px;
+            transition: var(--transition);
+        }
+
+        .nav-btn::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .nav-btn:hover::before {
+            opacity: 0.1;
+        }
+
+        .nav-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(255, 51, 102, 0.2);
+            border-color: var(--color-primary);
+        }
+
+        .nav-btn:hover .material-icons {
+            transform: scale(1.2);
+        }
+
+        .nav-btn:disabled {
+            background: rgba(255, 255, 255, 0.05);
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+
+        .nav-btn:disabled:hover {
+            transform: none;
+            box-shadow: none;
+        }
+
+        .nav-btn:disabled .material-icons {
+            transform: none;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            overflow: hidden;
+            margin-bottom: 1rem;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--color-primary), var(--color-secondary));
+            border-radius: 2px;
+            transition: width 0.5s ease;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 900px) {
+            .content-container {
+                grid-template-columns: 1fr;
+                grid-template-rows: 1fr auto;
+            }
+            
+            .controls-container {
+                height: auto;
+            }
+            
+            .status {
+                flex: none;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .camera-and-reference {
+                flex-direction: column;
+                align-items: center;
+                height: auto;
+            }
+            
+            .camera-container {
+                height: 250px;
+                width: 100%;
+            }
+            
+            .hand-svg {
+                width: 160px;
+                height: 160px;
+            }
+            
+            .letter-display h1 {
+                font-size: 2.5rem;
+            }
+            
+            .main-container {
+                padding: 0.5rem;
+            }
+
+            .back-button {
+                top: 1rem;
+                left: 1rem;
+                width: 40px;
+                height: 40px;
+            }
+
+            .back-button .material-icons {
+                font-size: 24px;
+            }
+        }
+
+        /* Ripple Effect */
+        .ripple {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            transform: scale(0);
+            animation: ripple 0.5s linear;
+            pointer-events: none;
+        }
+        
+        @keyframes ripple {
+            to {
+                transform: scale(2);
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Botón de retroceso -->
+    <div class="back-button" id="backButton">
+        <i class="material-icons">arrow_back</i>
+    </div>
+
+    <div class="background">
+        <div class="gradient-blob"></div>
+        <div class="gradient-blob"></div>
+        <div class="gradient-blob"></div>
+    </div>
+
+    <div class="main-container">
+        <header>
+            <div class="letter-display">
+                <h1 id="currentLetter">A</h1>
+                <div class="letter-counter">
+                    <span id="letterProgress">1</span> / 26
+                </div>
+            </div>
+            <p class="subtitle">Realiza la seña de la letra con tu mano y la cámara la detectará usando inteligencia artificial</p>
+        </header>
+
+        <div class="content-container">
+            <div class="video-container">
+                <div class="camera-and-reference">
+                    <div class="camera-container no-hand" id="cameraContainer">
+                        <video id="input_video" style="display: none;" autoplay playsinline></video>
+                        <canvas id="output_canvas" width="720" height="480"></canvas>
+                    </div>
+                    <div class="reference-image">
+                        <img id="referenceImage" src="A.svg" alt="Seña de la letra A" class="hand-svg">
+                        <div class="reference-label">Posición de referencia</div>
+                    </div>
+                </div>
+                <div class="prediction-display" id="predictionDisplay">
+                    Haz con la mano como se ve en la figura para hacer la letra  <strong>A</strong>
+                </div>
+            </div>
+
+            <div class="controls-container">
+                <h3>Estado de la Práctica</h3>
+                
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill" style="width: 3.8%"></div>
+                </div>
+                
+                <div class="status" id="practiceStatus">
+                    <div class="status-item">Iniciando...</div>
+                </div>
+                
+                <div class="navigation-container">
+                    <button id="prevBtn" class="nav-btn" disabled>
+                        <i class="material-icons">arrow_back</i>
+                        Anterior
+                    </button>
+                    <button id="nextBtn" class="nav-btn">
+                        Siguiente
+                        <i class="material-icons">arrow_forward</i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Variables globales
+        const videoElement = document.getElementById('input_video');
+        const canvasElement = document.getElementById('output_canvas');
+        const canvasCtx = canvasElement.getContext('2d');
+        const predictionDisplay = document.getElementById('predictionDisplay');
+        const practiceStatusElement = document.getElementById('practiceStatus');
+        const currentLetterElement = document.getElementById('currentLetter');
+        const letterProgressElement = document.getElementById('letterProgress');
+        const referenceImageElement = document.getElementById('referenceImage');
+        const progressFillElement = document.getElementById('progressFill');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const cameraContainer = document.getElementById('cameraContainer');
+        const backButton = document.getElementById('backButton');
+
+        let model = null, modelLoaded = false, cameraActive = false, lastPredictionTime = 0;
+        let letterCompleted = false; // Para mantener el estado de éxito
+        const aslLabels = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'];
+        let currentLetterIndex = 0;
+
+        // Función para agregar estado
+        function addStatus(element, message, type = 'info') {
+            const item = '<div class="status-item ' + type + '">' + message + '</div>';
+            element.innerHTML = item;
+        }
+
+        // Actualizar la interfaz con la letra actual
+        function updateLetterDisplay() {
+            const currentLetter = aslLabels[currentLetterIndex];
+            letterCompleted = false; // Resetear estado al cambiar de letra
+            
+            // Animación de cambio de letra
+            currentLetterElement.style.animation = 'letterChange 0.5s ease';
+            
+            setTimeout(() => {
+                currentLetterElement.textContent = currentLetter;
+                letterProgressElement.textContent = currentLetterIndex + 1;
+                referenceImageElement.src = currentLetter + '.svg';
+                referenceImageElement.alt = `Seña de la letra ${currentLetter}`;
+                
+                // Actualizar texto de instrucción
+                predictionDisplay.innerHTML = `Haz con la mano como se ve en la figura para hacer la letra <strong>${currentLetter}</strong>`;
+                
+                // Actualizar barra de progreso
+                const progressPercent = ((currentLetterIndex + 1) / aslLabels.length) * 100;
+                progressFillElement.style.width = progressPercent + '%';
+                
+                // Actualizar estado de botones
+                prevBtn.disabled = currentLetterIndex === 0;
+                nextBtn.disabled = currentLetterIndex === aslLabels.length - 1;
+                
+                currentLetterElement.style.animation = '';
+            }, 250);
+        }
+
+        // Navegar a letra anterior
+        function previousLetter() {
+            if (currentLetterIndex > 0) {
+                currentLetterIndex--;
+                updateLetterDisplay();
+                addStatus(practiceStatusElement, ' Letra cambiada. ¡Practica la nueva seña!', 'info');
+            }
+        }
+
+        // Navegar a letra siguiente
+        function nextLetter() {
+            if (currentLetterIndex < aslLabels.length - 1) {
+                currentLetterIndex++;
+                updateLetterDisplay();
+                addStatus(practiceStatusElement, ' Letra cambiada. ¡Practica la nueva seña!', 'info');
+            }
+        }
+
+        // Cargar modelo de IA
+        async function loadModel() {
+            try {
+                addStatus(practiceStatusElement, ' Cargando modelo de IA...');
+                model = await tf.loadLayersModel('../../entrenamiento/Web2.0/asl-model-tfjs.json');
+                modelLoaded = true;
+                addStatus(practiceStatusElement, ' ¡Listo para practicar!', 'success');
+            } catch (error) {
+                addStatus(practiceStatusElement, "Error al cargar el modelo: " + error.message, 'error');
+            }
+        }
+
+        // Normalizar landmarks
+        function normalizeLandmarks(landmarks) {
+            const points = landmarks.map(lm => ({ x: lm.x, y: lm.y, z: lm.z }));
+            const wrist = points[0];
+            const relativePoints = points.map(p => ({ 
+                x: p.x - wrist.x, 
+                y: p.y - wrist.y, 
+                z: p.z - wrist.z 
+            }));
+            
+            let maxDistance = 0;
+            for (let i = 1; i < relativePoints.length; i++) {
+                const dist = Math.sqrt(
+                    relativePoints[i].x ** 2 + 
+                    relativePoints[i].y ** 2 + 
+                    relativePoints[i].z ** 2
+                );
+                if (dist > maxDistance) maxDistance = dist;
+            }
+            
+            if (maxDistance > 0) {
+                return relativePoints.map(p => ({ 
+                    x: p.x / maxDistance, 
+                    y: p.y / maxDistance, 
+                    z: p.z / maxDistance 
+                }));
+            }
+            return relativePoints;
+        }
+
+        // Hacer predicción
+        async function makePrediction(landmarks) {
+            if (!modelLoaded || !cameraActive || Date.now() - lastPredictionTime < 500) return;
+            lastPredictionTime = Date.now();
+
+            const normalized = normalizeLandmarks(landmarks);
+            const flatData = [];
+            normalized.forEach(lm => flatData.push(lm.x, lm.y, lm.z));
+
+            if (flatData.length !== 63) return;
+
+            const inputTensor = tf.tensor2d([flatData]);
+            const prediction = model.predict(inputTensor);
+            const data = await prediction.data();
+            const maxIndex = data.indexOf(Math.max(...data));
+            const confidence = data[maxIndex] * 100;
+            const predictedLabel = aslLabels[maxIndex];
+            const targetLetter = aslLabels[currentLetterIndex];
+
+            if (confidence > 75) {
+                if (predictedLabel === targetLetter && !letterCompleted) {
+                    letterCompleted = true;
+                    addStatus(practiceStatusElement, ` ¡Excelente! Letra "${targetLetter}" completada correctamente`, 'success');
+                } else if (predictedLabel !== targetLetter && !letterCompleted) {
+                    addStatus(practiceStatusElement, ` Intenta hacer la letra "${targetLetter}" como se muestra en la imagen`, 'warning');
+                }
+            } else if (!letterCompleted) {
+                addStatus(practiceStatusElement, ' Coloca tu mano frente a la cámara', 'info');
+            }
+            
+            tf.dispose([inputTensor, prediction]);
+        }
+
+        // Configurar MediaPipe Hands
+        const hands = new Hands({ 
+            locateFile: (file) => "https://cdn.jsdelivr.net/npm/@mediapipe/hands/" + file 
+        });
+        
+        hands.setOptions({ 
+            maxNumHands: 1, 
+            modelComplexity: 1, 
+            minDetectionConfidence: 0.7, 
+            minTrackingConfidence: 0.5 
+        });
+
+        hands.onResults(async (results) => {
+            canvasCtx.save();
+            canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+            canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+            
+            if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+                const landmarks = results.multiHandLandmarks[0];
+                
+                // Cambiar marco a verde cuando se detecta mano
+                cameraContainer.classList.remove('no-hand');
+                cameraContainer.classList.add('hand-detected');
+                
+                if (modelLoaded) await makePrediction(landmarks);
+            } else {
+                // Cambiar marco a rojo cuando no se detecta mano
+                cameraContainer.classList.remove('hand-detected');
+                cameraContainer.classList.add('no-hand');
+                
+                if (!letterCompleted) {
+                    addStatus(practiceStatusElement, '🚫 No se detecta mano. Coloca tu mano frente a la cámara', 'warning');
+                }
+            }
+            
+            canvasCtx.restore();
+        });
+
+        // Inicializar cámara
+        async function initCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        width: { ideal: 720 }, 
+                        height: { ideal: 480 } 
+                    } 
+                });
+                
+                videoElement.srcObject = stream;
+                await videoElement.play();
+                
+                const camera = new window.Camera(videoElement, {
+                    onFrame: async () => await hands.send({ image: videoElement }),
+                    width: 720, 
+                    height: 480
+                });
+                
+                await camera.start();
+                cameraActive = true;
+            } catch (error) {
+                addStatus(practiceStatusElement, " Error al iniciar cámara: " + error.message, 'error');
+            }
+        }
+
+        // Event listeners para navegación
+        prevBtn.addEventListener('click', previousLetter);
+        nextBtn.addEventListener('click', nextLetter);
+        backButton.addEventListener('click', () => {
+            window.location.href = '../index.html';
+        });
+
+        // Navegación con teclado
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
+                previousLetter();
+            } else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
+                nextLetter();
+            }
+        });
+
+        // Efectos interactivos
+        document.addEventListener("DOMContentLoaded", () => {
+            const cards = document.querySelectorAll(".video-container, .controls-container");
+            const isTouchDevice = "ontouchstart" in window || navigator.maxTouchPoints > 0;
+
+            cards.forEach((card) => {
+                if (!isTouchDevice) {
+                    card.addEventListener("mousemove", (e) => {
+                        const rect = card.getBoundingClientRect();
+                        const x = e.clientX - rect.left;
+                        const y = e.clientY - rect.top;
+
+                        card.style.setProperty("--x", `${(x / rect.width) * 100}%`);
+                        card.style.setProperty("--y", `${(y / rect.height) * 100}%`);
+                    });
+                }
+            });
+
+            const buttons = document.querySelectorAll(".nav-btn, .back-button");
+            buttons.forEach((button) => {
+                button.addEventListener("click", (e) => {
+                    if (button.disabled) return;
+
+                    const ripple = document.createElement("span");
+                    ripple.classList.add("ripple");
+                    button.appendChild(ripple);
+
+                    const rect = button.getBoundingClientRect();
+                    const size = Math.max(rect.width, rect.height) * 2;
+
+                    ripple.style.width = ripple.style.height = `${size}px`;
+                    ripple.style.left = `${e.clientX - rect.left - size / 2}px`;
+                    ripple.style.top = `${e.clientY - rect.top - size / 2}px`;
+
+                    setTimeout(() => {
+                        ripple.remove();
+                    }, 500);
+                });
+            });
+        });
+
+        // Inicialización
+        window.addEventListener('DOMContentLoaded', async () => {
+            const urlParams = new URLSearchParams(window.location.search);
+    const startLetter = urlParams.get('letra'); // Obtenemos el valor del parámetro 'letra' (ej. "G")
+
+    // 2. Si el parámetro 'letra' existe en la URL, buscamos su índice.
+    if (startLetter) {
+        const initialIndex = aslLabels.indexOf(startLetter.toUpperCase());
+        
+        // 3. Si encontramos la letra en nuestro abecedario, actualizamos el índice inicial.
+        if (initialIndex !== -1) {
+            currentLetterIndex = initialIndex; // Aquí está la magia.
+        }
+    }
+            updateLetterDisplay();
+            await initCamera();
+            await loadModel();
+
+        });
+
+        // Ajustar canvas al redimensionar ventana
+        window.addEventListener('resize', async () => {
+            if (cameraActive) {
+                const container = document.querySelector('.camera-container');
+                const rect = container.getBoundingClientRect();
+                // Mantener relación de aspecto
+                const aspectRatio = 720 / 480;
+                let newWidth = rect.width;
+                let newHeight = rect.height;
+                
+                if (newWidth / newHeight > aspectRatio) {
+                    newWidth = newHeight * aspectRatio;
+                } else {
+                    newHeight = newWidth / aspectRatio;
+                }
+            }
+            
+            
+        });
+    </script>
+</body>
+</html>

@@ -4,81 +4,363 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Aprender Señas</title>
-    <link href="https://fonts.googleapis.com/css2?family=Segoe+UI:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        :root {
+            --color-bg: #050505;
+            --color-text: #ffffff;
+            --color-primary: #ff3366;
+            --color-secondary: #3366ff;
+            --color-tertiary: #33ddff;
+            --color-accent: #ffcc00;
+            --card-radius: 16px;
+            --card-bg: rgba(255, 255, 255, 0.03);
+            --card-border: rgba(255, 255, 255, 0.1);
+            --card-shadow: 0 15px 30px -12px rgba(0, 0, 0, 0.5);
+            --transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        * {
             margin: 0;
-            padding: 20px;
-            background: linear-gradient(135deg, #1a2980 0%, #26d0ce 100%);
-            min-height: 100vh;
-            color: white;
+            padding: 0;
+            box-sizing: border-box;
         }
-        .main-container {
-            max-width: 900px;
-            margin: 0 auto;
-            padding: 20px;
+
+        body {
+            font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--color-bg);
+            color: var(--color-text);
+            height: 100vh;
+            overflow: hidden;
+            line-height: 1.5;
         }
+
+        .background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            overflow: hidden;
+        }
+
+        .gradient-blob {
+            position: absolute;
+            border-radius: 100%;
+            filter: blur(40px);
+            opacity: 0.3;
+            animation: float 20s infinite alternate ease-in-out;
+        }
+
+        .gradient-blob:nth-child(1) {
+            background: linear-gradient(
+                to right,
+                var(--color-primary),
+                var(--color-secondary)
+            );
+            width: 150vw;
+            height: 150vw;
+            top: -100%;
+            left: -25%;
+            animation-delay: 0s;
+        }
+
+        .gradient-blob:nth-child(2) {
+            background: linear-gradient(
+                to right,
+                var(--color-tertiary),
+                var(--color-secondary)
+            );
+            width: 150vw;
+            height: 150vw;
+            bottom: -100%;
+            right: -25%;
+            animation-delay: -5s;
+        }
+
+        .gradient-blob:nth-child(3) {
+            background: linear-gradient(
+                to right,
+                var(--color-accent),
+                var(--color-primary)
+            );
+            width: 100vw;
+            height: 100vw;
+            top: 30%;
+            left: -50%;
+            animation-delay: -10s;
+        }
+
+        @keyframes float {
+            0% {
+                transform: translate(0, 0) scale(1);
+            }
+            50% {
+                transform: translate(2%, 2%) scale(1.02);
+            }
+            100% {
+                transform: translate(-2%, -2%) scale(0.98);
+            }
+        }
+
+        main {
+            width: 100%;
+            height: 100vh;
+            padding: 1rem;
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
         header {
             text-align: center;
-            margin-bottom: 40px;
+            margin-bottom: 2rem;
+            flex-shrink: 0;
         }
+
         h1 {
-            font-size: 3rem;
-            color: #ffdd59;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+            line-height: 1.1;
+            background: linear-gradient(
+                to right,
+                var(--color-text),
+                rgba(255, 255, 255, 0.7)
+            );
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
+
+        .subtitle {
+            font-size: 1rem;
+            opacity: 0.8;
+            margin-bottom: 1rem;
+        }
+
+        .alphabet-container {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 0;
+        }
+
         .alphabet-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-            gap: 20px;
-            justify-content: center;
+            grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
+            gap: 0.75rem;
+            width: 100%;
+            max-width: 1000px;
+            padding: 1rem;
         }
+
         .letter-btn {
             display: flex;
             justify-content: center;
             align-items: center;
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border: 2px solid rgba(255, 255, 255, 0.2);
-            border-radius: 15px;
-            padding: 20px;
-            font-size: 2.5rem;
-            font-weight: bold;
-            color: #ffffff;
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: var(--card-radius);
+            padding: 1rem;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--color-text);
             text-decoration: none;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            transition: var(--transition);
+            box-shadow: var(--card-shadow);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            aspect-ratio: 1;
+            min-height: 60px;
         }
+
+        .letter-btn::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(
+                circle at var(--x, 50%) var(--y, 50%),
+                rgba(255, 255, 255, 0.1) 0%,
+                transparent 50%
+            );
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .letter-btn:hover::before {
+            opacity: 1;
+        }
+
         .letter-btn:hover {
-            background: rgba(255, 255, 255, 0.2);
             transform: translateY(-5px) scale(1.05);
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
-            color: #ffdd59;
+            box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.4);
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        /* Responsive design */
+        @media (min-width: 480px) {
+            .alphabet-grid {
+                grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
+                gap: 1rem;
+            }
+            
+            .letter-btn {
+                padding: 1.2rem;
+                font-size: 1.8rem;
+                min-height: 70px;
+            }
+            
+            h1 {
+                font-size: 3rem;
+            }
+        }
+
+        @media (min-width: 768px) {
+            main {
+                padding: 2rem;
+            }
+            
+            header {
+                margin-bottom: 3rem;
+            }
+            
+            h1 {
+                font-size: 3.5rem;
+            }
+            
+            .subtitle {
+                font-size: 1.1rem;
+            }
+            
+            .alphabet-grid {
+                grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+                gap: 1.25rem;
+                max-width: 1200px;
+            }
+            
+            .letter-btn {
+                padding: 1.5rem;
+                font-size: 2rem;
+                min-height: 80px;
+                border-radius: 20px;
+            }
+            
+            .gradient-blob {
+                filter: blur(60px);
+                opacity: 0.4;
+            }
+        }
+
+        @media (min-width: 1024px) {
+            h1 {
+                font-size: 4rem;
+            }
+            
+            .subtitle {
+                font-size: 1.2rem;
+            }
+            
+            .alphabet-grid {
+                grid-template-columns: repeat(13, 1fr);
+                gap: 1.5rem;
+            }
+            
+            .letter-btn {
+                padding: 1.8rem;
+                font-size: 2.2rem;
+                min-height: 90px;
+            }
+            
+            .gradient-blob {
+                filter: blur(80px);
+                opacity: 0.5;
+            }
+        }
+
+        @media (min-width: 1400px) {
+            .alphabet-grid {
+                grid-template-columns: repeat(13, 1fr);
+                max-width: 1400px;
+            }
+            
+            .letter-btn {
+                padding: 2rem;
+                font-size: 2.5rem;
+                min-height: 100px;
+            }
+        }
+
+        /* Animaciones para las letras */
+        @keyframes cardFloat {
+            0% {
+                transform: translateY(0);
+            }
+            100% {
+                transform: translateY(-3px);
+            }
+        }
+
+        .letter-btn {
+            animation: cardFloat 4s infinite alternate ease-in-out;
         }
     </style>
 </head>
 <body>
-    <div class="main-container">
+    <div class="background">
+        <div class="gradient-blob"></div>
+        <div class="gradient-blob"></div>
+        <div class="gradient-blob"></div>
+    </div>
+
+    <main>
         <header>
             <h1>Abecedario de Señas</h1>
+            <p class="subtitle">Aprende el lenguaje de señas letra por letra</p>
         </header>
-        <div class="alphabet-grid" id="alphabetGrid">
-            <!-- Los botones del abecedario se generarán aquí -->
+        
+        <div class="alphabet-container">
+            <div class="alphabet-grid" id="alphabetGrid">
+                <!-- Los botones del abecedario se generarán aquí -->
+            </div>
         </div>
-    </div>
+    </main>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const alphabetGrid = document.getElementById('alphabetGrid');
             const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+            const isTouchDevice = "ontouchstart" in window || navigator.maxTouchPoints > 0;
 
-            alphabet.forEach(letter => {
+            alphabet.forEach((letter, index) => {
                 const button = document.createElement('a');
-                button.href = `letras/${letter}.html`;
+                button.href = `letras/letras.html?letra=${letter}`;
                 button.className = 'letter-btn';
                 button.textContent = letter;
+                
+                // Agregar delay aleatorio para la animación
+                const randomDelay = Math.random() * 2;
+                button.style.animationDelay = `${randomDelay}s`;
+                
                 alphabetGrid.appendChild(button);
+                
+                // Efectos de mouse solo en dispositivos no táctiles
+                if (!isTouchDevice) {
+                    button.addEventListener("mousemove", (e) => {
+                        const rect = button.getBoundingClientRect();
+                        const x = e.clientX - rect.left;
+                        const y = e.clientY - rect.top;
+
+                        button.style.setProperty("--x", `${(x / rect.width) * 100}%`);
+                        button.style.setProperty("--y", `${(y / rect.height) * 100}%`);
+                    });
+                }
             });
         });
     </script>

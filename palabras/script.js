@@ -1,3 +1,4 @@
+// ASL Prediction functionality - UNCHANGED
 const videoElement = document.getElementById('input_video');
 const canvasElement = document.getElementById('output_canvas');
 const canvasCtx = canvasElement.getContext('2d');
@@ -142,3 +143,69 @@ const camera = new Camera(videoElement, {
 });
 camera.start();
 loadModel();
+
+// UI Enhancement functionality - NEW
+document.addEventListener("DOMContentLoaded", () => {
+    const cards = document.querySelectorAll(".card");
+    const isTouchDevice = "ontouchstart" in window || navigator.maxTouchPoints > 0;
+
+    cards.forEach((card) => {
+        const content = card.querySelector(".card-content");
+        const rotationFactor = 2;
+
+        if (!isTouchDevice) {
+            card.addEventListener("mousemove", (e) => {
+                const rect = card.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+
+                const centerX = rect.width / 2;
+                const centerY = rect.height / 2;
+                const rotateY = (rotationFactor * (x - centerX)) / centerX;
+                const rotateX = (-rotationFactor * (y - centerY)) / centerY;
+
+                content.style.transform = `
+                    rotateX(${rotateX}deg) 
+                    rotateY(${rotateY}deg)
+                `;
+
+                card.style.setProperty("--x", `${(x / rect.width) * 100}%`);
+                card.style.setProperty("--y", `${(y / rect.height) * 100}%`);
+            });
+
+            card.addEventListener("mouseleave", () => {
+                content.style.transform = "rotateX(0) rotateY(0)";
+                content.style.transition = "transform 0.5s ease";
+                setTimeout(() => {
+                    content.style.transition = "";
+                }, 500);
+            });
+        }
+
+        const randomDelay = Math.random() * 2;
+        card.style.animation = `cardFloat 4s infinite alternate ease-in-out ${randomDelay}s`;
+    });
+
+    // Button ripple effect
+    const buttons = document.querySelectorAll(".card-button");
+    buttons.forEach((button) => {
+        button.addEventListener("click", (e) => {
+            const ripple = document.createElement("span");
+            ripple.classList.add("ripple");
+            button.appendChild(ripple);
+
+            const rect = button.getBoundingClientRect();
+            const size = Math.max(rect.width, rect.height) * 2;
+
+            ripple.style.width = ripple.style.height = `${size}px`;
+            ripple.style.left = `${e.clientX - rect.left - size / 2}px`;
+            ripple.style.top = `${e.clientY - rect.top - size / 2}px`;
+
+            ripple.classList.add("active");
+
+            setTimeout(() => {
+                ripple.remove();
+            }, 500);
+        });
+    });
+});
