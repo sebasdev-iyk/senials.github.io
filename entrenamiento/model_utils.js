@@ -1,4 +1,4 @@
-// Utilidades para el modelo ASL
+
 class ASLModelUtils {
     constructor() {
         this.modelInfo = null;
@@ -222,7 +222,7 @@ function createProgressDisplay() {
             <div class="progress-info">
                 <span id="val-loss-info">Val Loss: --</span>
                 <span id="val-acc-info">Val Accuracy: --</span>
-            </div>
+            </div> 
         </div>
     `;
     
