@@ -1,5 +1,6 @@
 # senials.github.io - Proyecto de Análisis de Señales
 
+texto de prueva para ver si estoy en la rama de mi xd
 Bienvenido a mi repositorio de análisis de señales. Este documento integra diferentes visualizaciones para presentar información técnica.
 
 ## Diagrama de Flujo del Proceso
