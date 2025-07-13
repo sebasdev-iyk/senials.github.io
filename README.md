@@ -1,6 +1,4 @@
 
-
-```markdown
 ```mermaid
 flowchart LR
     subgraph extraer_datos ["extraer_datos"]
