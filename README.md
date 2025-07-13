@@ -1,4 +1,43 @@
+
+
+```markdown
+```mermaid
+flowchart LR
+    subgraph extraer_datos ["extraer_datos"]
+        A[extraccion_de_datos.py]
+    end
+    
+    subgraph pre_web ["pre_web"]
+        B[preweb.py]
+    end
+    
+    subgraph entrenamiento ["entrenamiento"]
+        C[entrenamiento.html]
+    end
+    
+    A --> D[X_hand_landmarks.npy]
+    A --> E[y_labels.npy]
+    
+    D --> B
+    E --> B
+    
+    B --> F[mode_info.json]
+    B --> G[train_data.json]
+    
+    F --> C
+    G --> C
+    
+    C --> H[asl-model-tfjs.json]
+    C --> I[train_data.json]
+    
+    H --> J[probar_modelo.html]
+    I --> J
+```
+
+
+
 # senials.github.io - Proyecto de Análisis de Señales
+
 
 Bienvenido a mi repositorio de análisis de señales. Este documento integra diferentes visualizaciones para presentar información técnica.
 
