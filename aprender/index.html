@@ -20,6 +20,28 @@
             --transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
+        .back-button {
+            position: fixed;
+            top: 1rem;
+            left: 1rem;
+            z-index: 100;
+            padding: 0.6rem 1.2rem;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 100px;
+            color: var(--color-text);
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(5px);
+        }
+
+        .back-button:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -313,6 +335,7 @@
     </style>
 </head>
 <body>
+    <button onclick="window.location.href='../index.html'" class="back-button">Regresar</button>
     <div class="background">
         <div class="gradient-blob"></div>
         <div class="gradient-blob"></div>
