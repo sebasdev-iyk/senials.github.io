@@ -54,11 +54,11 @@
         const predictionLetterElement = document.getElementById('prediction_letter');
 
         let model;
-        const aslLabels = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'];
+        const aslLabels = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'N', 'M', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z','Ñ'];
 
         async function loadModel() {
             try {
-                model = await tf.loadLayersModel('../entrenamiento/Web2.0/asl-model-tfjs.json');
+                model = await tf.loadLayersModel('../lsp/asl-model-tfjs.json');
                 console.log("Modelo cargado exitosamente");
             } catch (error) {
                 console.error("Error al cargar el modelo:", error);
